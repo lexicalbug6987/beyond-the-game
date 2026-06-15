@@ -5,6 +5,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import cors from "cors";
 import express from "express";
+import helmet from "helmet";
+import { rateLimit } from "express-rate-limit";
 import { aggregateSubmissions, type QuizConfig, type QuizSubmission } from "@team-culture-sim/sim-engine";
 
 // Load quiz content via fs so this works the same under tsx and plain node.
@@ -59,14 +61,65 @@ function makeCode(): string {
 }
 
 const app = express();
-app.use(cors());
-app.use(express.json({ limit: "256kb" }));
+
+// ── Security headers ──────────────────────────────────────────────────────────
+app.use(helmet());
+app.disable("x-powered-by");
+
+// ── CORS ──────────────────────────────────────────────────────────────────────
+app.use(cors({ origin: true, methods: ["GET", "POST"], credentials: false }));
+
+// ── Body parsing ─────────────────────────────────────────────────────────────
+app.use(express.json({ limit: "32kb" }));
+
+// ── Rate limiters ─────────────────────────────────────────────────────────────
+
+// Global: 200 req / minute per IP across all API routes
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please slow down." },
+});
+
+// Admin auth: 10 attempts / 15 min per IP (brute-force protection)
+const adminAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many login attempts, please try again later." },
+  skipSuccessfulRequests: true,
+});
+
+// Session creation: 20 sessions / hour per IP
+const createSessionLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many sessions created, please try again later." },
+});
+
+// Submission: 60 submissions / 10 min per IP
+const submitLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many submissions, please slow down." },
+});
+
+app.use("/api", globalLimiter);
+
+// ── Routes ────────────────────────────────────────────────────────────────────
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, sessions: sessions.size });
 });
 
-app.post("/api/admin/auth", (req, res) => {
+app.post("/api/admin/auth", adminAuthLimiter, (req, res) => {
   const password = process.env.ADMIN_PASSWORD;
   if (!password) {
     res.status(503).json({ error: "Admin password not configured" });
@@ -85,7 +138,7 @@ app.get("/api/quiz", (_req, res) => {
   res.json(config);
 });
 
-app.post("/api/sessions", (req, res) => {
+app.post("/api/sessions", createSessionLimiter, (req, res) => {
   const teamName = String(req.body?.teamName ?? "").trim().slice(0, 60) || "Your team";
   const code = makeCode();
   const session: Session = { code, teamName, createdAt: Date.now(), submissions: [] };
@@ -114,12 +167,12 @@ app.get("/api/sessions/:code", (req, res) => {
   });
 });
 
-app.post("/api/sessions/:code/submissions", (req, res) => {
+app.post("/api/sessions/:code/submissions", submitLimiter, (req, res) => {
   const session = getSession(req, res);
   if (!session) return;
 
   const rawAnswers = req.body?.answers;
-  if (!rawAnswers || typeof rawAnswers !== "object") {
+  if (!rawAnswers || typeof rawAnswers !== "object" || Array.isArray(rawAnswers)) {
     res.status(400).json({ error: "Missing answers" });
     return;
   }
@@ -128,7 +181,8 @@ app.post("/api/sessions/:code/submissions", (req, res) => {
   const answers: Record<string, string> = {};
   for (const [questionId, optionId] of Object.entries(rawAnswers)) {
     if (validQuestionIds.has(questionId) && typeof optionId === "string") {
-      answers[questionId] = optionId;
+      // Option IDs are short single-word identifiers — cap length to prevent oversized values.
+      answers[questionId] = String(optionId).slice(0, 32);
     }
   }
   if (Object.keys(answers).length === 0) {
@@ -146,6 +200,11 @@ app.get("/api/sessions/:code/results", (req, res) => {
   if (!session) return;
   const result = aggregateSubmissions(config, session.submissions);
   res.json({ teamName: session.teamName, code: session.code, ...result });
+});
+
+// ── 404 catch-all ─────────────────────────────────────────────────────────────
+app.use((_req, res) => {
+  res.status(404).json({ error: "Not found" });
 });
 
 const PORT = Number(process.env.PORT ?? 8787);
