@@ -6,12 +6,10 @@ const API_TARGET = process.env.API_TARGET ?? "http://localhost:8787";
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173,
+    port: 5000,
     strictPort: true,
-    open: true,
-    // Expose on the LAN so teammates can scan the QR code from their phones.
-    // Default is localhost-only via scripts/dev.sh (VITE_HOST=false).
-    host: process.env.VITE_HOST !== "false",
+    host: "0.0.0.0",
+    allowedHosts: "all",
     proxy: {
       "/api": {
         target: API_TARGET,
