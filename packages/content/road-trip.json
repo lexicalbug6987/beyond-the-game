@@ -1,0 +1,223 @@
+{
+  "id": "road-trip",
+  "title": "Road Trip",
+  "totalDays": 14,
+  "playerRole": "bench",
+  "teammates": [
+    {
+      "id": "t-captain",
+      "name": "Marcus",
+      "role": "captain",
+      "influence": 0.9,
+      "vulnerability": 0.25,
+      "traits": ["confident", "funny", "status-aware"]
+    },
+    {
+      "id": "t-starter-1",
+      "name": "Jordan",
+      "role": "starter",
+      "influence": 0.75,
+      "vulnerability": 0.3,
+      "traits": ["competitive", "loyal"]
+    },
+    {
+      "id": "t-starter-2",
+      "name": "Alex",
+      "role": "starter",
+      "influence": 0.7,
+      "vulnerability": 0.35,
+      "traits": ["outspoken", "direct"]
+    },
+    {
+      "id": "t-newcomer",
+      "name": "Riley",
+      "role": "newcomer",
+      "influence": 0.35,
+      "vulnerability": 0.75,
+      "traits": ["quiet", "observant", "new"]
+    },
+    {
+      "id": "t-bench-1",
+      "name": "Casey",
+      "role": "bench",
+      "influence": 0.5,
+      "vulnerability": 0.55,
+      "traits": ["funny", "anxious"]
+    },
+    {
+      "id": "t-bench-2",
+      "name": "Dev",
+      "role": "bench",
+      "influence": 0.45,
+      "vulnerability": 0.5,
+      "traits": ["easygoing", "connector"]
+    }
+  ],
+  "schedule": [
+    { "day": 1, "label": "Day 1 — Depart", "spaces": ["bus", "hotel", "group_chat"], "gameResult": "none" },
+    { "day": 2, "label": "Day 2 — Away game", "spaces": ["bus", "locker_room", "group_chat"], "gameResult": "win" },
+    { "day": 3, "label": "Day 3 — Recovery", "spaces": ["hotel", "group_chat"], "gameResult": "none" },
+    { "day": 4, "label": "Day 4 — Travel", "spaces": ["bus", "hotel"], "gameResult": "none" },
+    { "day": 5, "label": "Day 5 — Rivalry game", "spaces": ["bus", "locker_room", "group_chat"], "gameResult": "loss" },
+    { "day": 6, "label": "Day 6 — Short reset", "spaces": ["hotel", "group_chat"], "gameResult": "none" },
+    { "day": 7, "label": "Day 7 — Mid-trip", "spaces": ["bus", "hotel", "group_chat"], "gameResult": "win" },
+    { "day": 8, "label": "Day 8 — Back on the road", "spaces": ["bus", "group_chat"], "gameResult": "none" },
+    { "day": 9, "label": "Day 9 — Away game", "spaces": ["locker_room", "hotel", "group_chat"], "gameResult": "loss" },
+    { "day": 10, "label": "Day 10 — Long travel", "spaces": ["bus", "hotel"], "gameResult": "none" },
+    { "day": 11, "label": "Day 11 — Must-win", "spaces": ["bus", "locker_room", "group_chat"], "gameResult": "win" },
+    { "day": 12, "label": "Day 12 — Fatigue", "spaces": ["hotel", "group_chat"], "gameResult": "none" },
+    { "day": 13, "label": "Day 13 — Penultimate", "spaces": ["bus", "hotel", "group_chat"], "gameResult": "none" },
+    { "day": 14, "label": "Day 14 — Head home", "spaces": ["bus", "locker_room"], "gameResult": "win" }
+  ],
+  "openingMessages": [
+    {
+      "id": "msg-1",
+      "authorId": "t-captain",
+      "text": "Bus leaves in 20. Don't be the reason we're late.",
+      "tone": "neutral"
+    },
+    {
+      "id": "msg-2",
+      "authorId": "t-starter-1",
+      "text": "Who saved seats already 👀",
+      "tone": "neutral"
+    },
+    {
+      "id": "msg-3",
+      "authorId": "t-bench-1",
+      "text": "lol remember last year's hotel wifi",
+      "tone": "neutral"
+    },
+    {
+      "id": "msg-4",
+      "authorId": "t-starter-2",
+      "text": "clip of Riley missing the easy pass lol",
+      "tone": "edgy"
+    }
+  ],
+  "minValues": 2,
+  "maxValues": 3,
+  "values": [
+    { "id": "courage", "label": "Courage", "blurb": "We say the hard thing, even when it's easier to stay quiet." },
+    { "id": "excellence", "label": "Excellence", "blurb": "We hold the standard when no one's watching." },
+    { "id": "respect", "label": "Respect", "blurb": "Everyone gets treated like they belong here." },
+    { "id": "trust", "label": "Trust", "blurb": "We have each other's backs, on and off the floor." },
+    { "id": "care", "label": "Care", "blurb": "We look out for each other, especially when someone's struggling." },
+    { "id": "accountability", "label": "Accountability", "blurb": "We own our mistakes instead of hiding them." }
+  ],
+  "scenarios": [
+    {
+      "id": "locker-mockery",
+      "day": 2,
+      "space": "locker_room",
+      "title": "The first-year in the corner",
+      "description": "A few starters are riffing on Riley — the easy pass from warmups, the way they talk, the gear they showed up in. Riley is half-laughing, looking at the floor. The room is waiting to see what happens next.",
+      "valueTags": ["courage", "respect", "trust"],
+      "options": [
+        {
+          "id": "laugh",
+          "label": "Laugh along",
+          "note": "You laughed with them. It kept things easy — and Riley got quieter for the rest of the trip.",
+          "valueImpacts": { "respect": -3, "courage": -2, "trust": -2 },
+          "norms": { "banterTolerance": 0.06, "exclusion": 0.04, "speakUpSafety": -0.03 }
+        },
+        {
+          "id": "silent",
+          "label": "Stay silent",
+          "note": "You said nothing. It blew over — but silence reads as agreement when you're in the room.",
+          "valueImpacts": { "courage": -2, "respect": -1 },
+          "norms": { "speakUpSafety": -0.02, "exclusion": 0.02 }
+        },
+        {
+          "id": "checkin",
+          "label": "Check in with Riley privately later",
+          "note": "Later, you found Riley alone and let them know you saw it. They opened up more than you expected.",
+          "valueImpacts": { "respect": 2, "trust": 3, "courage": 1, "care": 3 },
+          "norms": { "exclusion": -0.03 }
+        },
+        {
+          "id": "redirect",
+          "label": "Redirect the conversation",
+          "note": "You pulled the room somewhere else without making it a confrontation. The moment passed, the dignity stayed.",
+          "valueImpacts": { "respect": 2, "courage": 1, "excellence": 1 },
+          "norms": { "banterTolerance": -0.03, "speakUpSafety": 0.02 }
+        },
+        {
+          "id": "speak-up",
+          "label": "Speak up in the moment",
+          "note": "You said it plainly: that's enough. The room went still — then reset. Riley caught your eye.",
+          "valueImpacts": { "courage": 3, "respect": 3, "trust": 2, "care": 2, "accountability": 2 },
+          "norms": { "speakUpSafety": 0.06, "banterTolerance": -0.05, "exclusion": -0.03 }
+        }
+      ]
+    },
+    {
+      "id": "loss-blame",
+      "day": 5,
+      "space": "locker_room",
+      "title": "After the rivalry loss",
+      "description": "The buzzer just went. Someone mutters that Casey's turnover cost the game, loud enough for everyone to hear. Heads turn. Casey stares at the floor.",
+      "valueTags": ["accountability", "care", "courage"],
+      "options": [
+        {
+          "id": "pile-on",
+          "label": "Agree it was on Casey",
+          "note": "The blame stuck to one person. Easy story — and Casey stopped taking risks after that.",
+          "valueImpacts": { "accountability": -3, "care": -3, "trust": -2, "respect": -1 },
+          "norms": { "coverUp": 0.05, "speakUpSafety": -0.04 }
+        },
+        {
+          "id": "quiet",
+          "label": "Let it slide",
+          "note": "Nobody stopped it. The room learned that when things go wrong, someone gets fed to the wolves.",
+          "valueImpacts": { "courage": -2, "care": -1, "accountability": -1 },
+          "norms": { "coverUp": 0.03 }
+        },
+        {
+          "id": "share",
+          "label": "Name your own part in the loss",
+          "note": "You owned a mistake of your own first. It shifted the room from blame to 'what do we fix.'",
+          "valueImpacts": { "accountability": 3, "courage": 3, "trust": 2, "care": 2 },
+          "norms": { "coverUp": -0.05, "speakUpSafety": 0.04 }
+        },
+        {
+          "id": "defend",
+          "label": "Shut the blame down",
+          "note": "You said it straight: we win and lose as a team. Casey exhaled. So did a few others.",
+          "valueImpacts": { "courage": 3, "trust": 3, "respect": 2, "care": 2 },
+          "norms": { "speakUpSafety": 0.05, "coverUp": -0.03 }
+        }
+      ]
+    },
+    {
+      "id": "skip-cooldown",
+      "day": 9,
+      "space": "hotel",
+      "title": "The shortcut",
+      "description": "Two starters are heading out instead of doing the recovery session the staff laid out. 'It's optional, basically.' A couple of younger players are watching to see if it really is.",
+      "valueTags": ["excellence", "accountability"],
+      "options": [
+        {
+          "id": "join",
+          "label": "Head out with them",
+          "note": "You skipped it too. The standard quietly dropped a notch — and the rookies noticed who set it.",
+          "valueImpacts": { "excellence": -3, "courage": -1, "accountability": -2 },
+          "norms": { "coverUp": 0.03 }
+        },
+        {
+          "id": "say-nothing",
+          "label": "Do the session, say nothing",
+          "note": "You stayed and did the work without comment. Quiet example — some followed, some didn't.",
+          "valueImpacts": { "excellence": 2, "accountability": 1 }
+        },
+        {
+          "id": "invite",
+          "label": "Pull everyone back in",
+          "note": "You made it a team thing instead of a chore. More people stayed than you'd have guessed.",
+          "valueImpacts": { "excellence": 3, "courage": 1, "trust": 1, "care": 1, "accountability": 2 },
+          "norms": { "exclusion": -0.02 }
+        }
+      ]
+    }
+  ]
+}

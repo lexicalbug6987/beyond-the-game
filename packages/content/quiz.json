@@ -1,0 +1,404 @@
+{
+  "id": "culture-check",
+  "title": "Beyond the Game",
+  "values": [
+    { "id": "courage", "label": "Courage", "blurb": "Saying the hard thing, even when it's easier to stay quiet." },
+    { "id": "excellence", "label": "Excellence", "blurb": "Holding the standard when no one's watching." },
+    { "id": "respect", "label": "Respect", "blurb": "Treating everyone like they belong here." },
+    { "id": "trust", "label": "Trust", "blurb": "Having each other's backs, on and off the floor." },
+    { "id": "care", "label": "Care", "blurb": "Looking out for each other, especially when someone's struggling." },
+    { "id": "accountability", "label": "Accountability", "blurb": "Owning mistakes instead of hiding them." }
+  ],
+  "improvementTips": {
+    "courage": "Pick one small thing to name out loud this week — a comment that crossed a line, a teammate left out. Courage is a muscle; short reps build it.",
+    "excellence": "Hold your own standard when it's inconvenient — the rep nobody checks, the cooldown after a loss. Standards spread from whoever keeps them first.",
+    "respect": "Watch who goes quiet when the group gets loud. Make one deliberate move to pull them back in each session.",
+    "trust": "Follow through on the small stuff (be on time, keep what's private private). Trust is built in reps, not speeches.",
+    "care": "Notice who's having a rough one and check in — a quiet, private 'you good?' lands harder than any team speech.",
+    "accountability": "When something goes wrong, name your own part before anyone asks. It makes it safe for everyone else to do the same."
+  },
+  "questions": [
+    {
+      "id": "q-mockery",
+      "theme": "Bystander intervention",
+      "perspective": "self",
+      "prompt": "A first-year is getting mocked in the locker room — the gear they showed up in, the way they talk. They're half-laughing, looking at the floor. What do you actually do?",
+      "options": [
+        {
+          "id": "a",
+          "label": "Laugh along — it's just how the room is",
+          "valueImpacts": { "respect": -3, "courage": -2, "trust": -2 },
+          "insight": "Laughing along reads as endorsement. The target remembers who joined in."
+        },
+        {
+          "id": "b",
+          "label": "Stay quiet and let it pass",
+          "valueImpacts": { "courage": -2, "respect": -1, "trust": 1 },
+          "insight": "Silence avoids the conflict but doesn't change the norm — the room learns this is allowed."
+        },
+        {
+          "id": "c",
+          "label": "Find them privately afterward to check in",
+          "valueImpacts": { "respect": 2, "trust": 3, "courage": 1, "care": 3 },
+          "insight": "Private repair rebuilds the relationship, even if the moment itself went unchallenged."
+        },
+        {
+          "id": "d",
+          "label": "Say something in the moment to shut it down",
+          "valueImpacts": { "courage": 3, "respect": 3, "trust": 2, "care": 2, "accountability": 1 },
+          "insight": "Naming it live resets the norm for everyone watching — the highest-leverage move."
+        }
+      ]
+    },
+    {
+      "id": "q-blame",
+      "theme": "Accountability",
+      "perspective": "self",
+      "prompt": "You lose a close game and a teammate's mistake gets singled out loudly in the locker room. How do you respond?",
+      "options": [
+        {
+          "id": "a",
+          "label": "Agree — it was clearly their fault",
+          "valueImpacts": { "accountability": -2, "care": -3, "trust": -3, "respect": -1 },
+          "insight": "Scapegoating dodges your own part and leaves a teammate alone with the loss."
+        },
+        {
+          "id": "b",
+          "label": "Stay out of it",
+          "valueImpacts": { "courage": -1, "care": -1, "accountability": -1 },
+          "insight": "Neutrality here still lets the blame stick."
+        },
+        {
+          "id": "c",
+          "label": "Name your own part in the loss first",
+          "valueImpacts": { "accountability": 3, "courage": 3, "trust": 2, "care": 2 },
+          "insight": "Owning your piece first takes the heat off one person and lets the team move from blame to fixing it."
+        },
+        {
+          "id": "d",
+          "label": "Shut the blame down — we win and lose together",
+          "valueImpacts": { "courage": 2, "trust": 3, "respect": 2, "care": 2 },
+          "insight": "Protecting a teammate publicly is a trust deposit the whole room notices."
+        }
+      ]
+    },
+    {
+      "id": "q-cooldown",
+      "theme": "Peer pressure",
+      "perspective": "self",
+      "prompt": "Two starters skip the recovery session the staff set, calling it 'basically optional.' Younger players are watching to see if it really is. You…",
+      "options": [
+        {
+          "id": "a",
+          "label": "Head out with them — it's not a big deal",
+          "valueImpacts": { "excellence": -3, "courage": -1, "accountability": -2 },
+          "insight": "The standard is set by whoever the youngest players copy — and they're watching."
+        },
+        {
+          "id": "b",
+          "label": "Do the session quietly, say nothing",
+          "valueImpacts": { "excellence": 2, "accountability": 1 },
+          "insight": "Leading by example works, but staying silent leaves the norm ambiguous."
+        },
+        {
+          "id": "c",
+          "label": "Make it a team thing and pull people back in",
+          "valueImpacts": { "excellence": 3, "courage": 1, "trust": 1, "care": 1, "accountability": 2 },
+          "insight": "Turning the standard into a shared default is how culture actually holds."
+        }
+      ]
+    },
+    {
+      "id": "q-newcomer",
+      "theme": "Belonging",
+      "perspective": "self",
+      "prompt": "A transfer joined last week and keeps ending up on the edge of every group — bus, meals, warmups. What's your move?",
+      "options": [
+        {
+          "id": "a",
+          "label": "Let them find their own way in",
+          "valueImpacts": { "respect": -1, "trust": -1, "care": -2 },
+          "insight": "Sink-or-swim inclusion mostly produces sinking — and a quiet outsider."
+        },
+        {
+          "id": "b",
+          "label": "Be friendly if they come to you",
+          "valueImpacts": { "respect": 1, "care": 1 },
+          "insight": "Passive warmth is better than nothing, but rarely closes the gap."
+        },
+        {
+          "id": "c",
+          "label": "Deliberately bring them into the group",
+          "valueImpacts": { "respect": 3, "trust": 2, "courage": 1, "care": 3 },
+          "insight": "Active inclusion is a small act with outsized effect on whether someone stays."
+        }
+      ]
+    },
+    {
+      "id": "q-groupchat",
+      "theme": "Locker-room norms",
+      "perspective": "self",
+      "prompt": "The group chat is piling onto a teammate's bad-game clip. Reactions are rolling in. You…",
+      "options": [
+        {
+          "id": "a",
+          "label": "Add a laughing reaction",
+          "valueImpacts": { "respect": -2, "courage": -2, "trust": -1 },
+          "insight": "Pile-ons feel harmless in a chat but land hard on the person in the clip."
+        },
+        {
+          "id": "b",
+          "label": "Mute it and move on",
+          "valueImpacts": { "courage": -1 },
+          "insight": "Opting out personally doesn't change what the group is doing."
+        },
+        {
+          "id": "c",
+          "label": "DM the teammate something supportive",
+          "valueImpacts": { "trust": 3, "respect": 2, "care": 3 },
+          "insight": "A private check-in repairs the person even when you can't move the group."
+        },
+        {
+          "id": "d",
+          "label": "Redirect the thread to something else",
+          "valueImpacts": { "respect": 2, "courage": 2, "trust": 1 },
+          "insight": "Changing the energy without a callout often works better than a lecture."
+        }
+      ]
+    },
+    {
+      "id": "q-star",
+      "theme": "Leadership",
+      "perspective": "self",
+      "prompt": "Your best player sets a bad tone — cutting comments, eye-rolls at teammates — but the team keeps winning. Do you address it?",
+      "options": [
+        {
+          "id": "a",
+          "label": "Leave it — we're winning, don't rock the boat",
+          "valueImpacts": { "courage": -3, "respect": -1, "care": -2, "accountability": -2 },
+          "insight": "Letting results excuse behavior teaches everyone the standard is negotiable for stars."
+        },
+        {
+          "id": "b",
+          "label": "Vent about it to other teammates",
+          "valueImpacts": { "trust": -2, "courage": -1 },
+          "insight": "Side conversations erode trust without changing anything."
+        },
+        {
+          "id": "c",
+          "label": "Talk to them directly, one-to-one",
+          "valueImpacts": { "courage": 3, "respect": 2, "trust": 1, "care": 2, "accountability": 2 },
+          "insight": "Direct, private, specific. The only version of this that actually lands."
+        }
+      ]
+    },
+    {
+      "id": "q-confide",
+      "theme": "Trust",
+      "perspective": "self",
+      "prompt": "A teammate confides they've been struggling off the court and asks you to keep it quiet. Later, others are guessing why they've been 'off.' You…",
+      "options": [
+        {
+          "id": "a",
+          "label": "Share a little — they'd understand",
+          "valueImpacts": { "trust": -3, "respect": -2 },
+          "insight": "'A little' is still a breach. Confidentiality is the whole point of being trusted."
+        },
+        {
+          "id": "b",
+          "label": "Deflect and keep it to yourself",
+          "valueImpacts": { "trust": 3, "respect": 1, "courage": 1, "care": 1 },
+          "insight": "Holding a confidence under pressure is exactly how trust is earned."
+        },
+        {
+          "id": "c",
+          "label": "Tell them the team is asking, let them decide",
+          "valueImpacts": { "trust": 2, "respect": 2, "care": 1, "accountability": 1 },
+          "insight": "Giving them control over their own story respects both the secret and the person."
+        }
+      ]
+    },
+    {
+      "id": "q-hazing",
+      "theme": "Bystander intervention",
+      "perspective": "self",
+      "prompt": "A 'tradition' for first-years is framed as bonding, but it's clearly making a couple of them uncomfortable. Most people treat it as normal. You…",
+      "options": [
+        {
+          "id": "a",
+          "label": "Go along — it's tradition, everyone did it",
+          "valueImpacts": { "courage": -3, "respect": -3, "care": -2, "accountability": -1 },
+          "insight": "'Tradition' is how harmful norms survive. Discomfort is the signal to stop."
+        },
+        {
+          "id": "b",
+          "label": "Quietly opt out yourself",
+          "valueImpacts": { "courage": 1, "respect": 1, "care": 1 },
+          "insight": "Personal opt-out is a start but leaves the first-years exposed."
+        },
+        {
+          "id": "c",
+          "label": "Speak up or flag it to someone who can change it",
+          "valueImpacts": { "courage": 3, "respect": 2, "trust": 1, "care": 2, "accountability": 2 },
+          "insight": "Escalating appropriately protects the people who can't push back themselves."
+        }
+      ]
+    },
+    {
+      "id": "q-playingtime",
+      "theme": "Respect",
+      "perspective": "self",
+      "prompt": "You get bumped from the starting lineup for a teammate. It stings. How do you carry it around the team?",
+      "options": [
+        {
+          "id": "a",
+          "label": "Let it show — cold shoulder, less effort",
+          "valueImpacts": { "respect": -2, "excellence": -2, "trust": -1 },
+          "insight": "Punishing the team for a coaching decision corrodes both standards and relationships."
+        },
+        {
+          "id": "b",
+          "label": "Keep it professional but distant",
+          "valueImpacts": { "excellence": 1, "respect": 1 },
+          "insight": "Professionalism holds the floor, but distance still costs the connection."
+        },
+        {
+          "id": "c",
+          "label": "Support the starter and keep your standard up",
+          "valueImpacts": { "respect": 3, "excellence": 2, "trust": 2, "care": 1, "accountability": 1 },
+          "insight": "Backing a teammate through your own disappointment is one of the loudest culture signals there is."
+        }
+      ]
+    },
+    {
+      "id": "q-team-mistakes",
+      "theme": "What usually happens",
+      "perspective": "team",
+      "prompt": "When someone makes a visible mistake in a game, what usually happens next on your team?",
+      "options": [
+        {
+          "id": "a",
+          "label": "It gets pinned on them and it lingers",
+          "valueImpacts": { "care": -3, "trust": -2, "accountability": -2 },
+          "insight": "When mistakes stick to a person, people stop taking the risks that win games."
+        },
+        {
+          "id": "b",
+          "label": "Coaches handle it; teammates stay out of it",
+          "valueImpacts": { "accountability": 1 },
+          "insight": "Leaving it to staff is fine, but the team isn't owning its culture either way."
+        },
+        {
+          "id": "c",
+          "label": "We own it as a group and move on",
+          "valueImpacts": { "accountability": 3, "care": 2, "trust": 2 },
+          "insight": "Shared ownership is what lets a team fail forward instead of fracturing."
+        }
+      ]
+    },
+    {
+      "id": "q-team-newcomer",
+      "theme": "What usually happens",
+      "perspective": "team",
+      "prompt": "A new player joins mid-season. On your team, they usually…",
+      "options": [
+        {
+          "id": "a",
+          "label": "Have to earn their place before anyone bothers",
+          "valueImpacts": { "respect": -2, "care": -2, "trust": -1 },
+          "insight": "'Earn it first' cultures lose good people before they ever get going."
+        },
+        {
+          "id": "b",
+          "label": "Get left to figure it out on their own",
+          "valueImpacts": { "respect": -1, "care": -1 },
+          "insight": "Sink-or-swim isn't neutral — it quietly tells newcomers they're on the outside."
+        },
+        {
+          "id": "c",
+          "label": "Get pulled in quickly by a few people",
+          "valueImpacts": { "respect": 3, "care": 3, "trust": 1 },
+          "insight": "A couple of intentional people deciding 'you're one of us' changes everything."
+        }
+      ]
+    },
+    {
+      "id": "q-team-chat",
+      "theme": "What usually happens",
+      "perspective": "team",
+      "prompt": "Your team's group chat is mostly…",
+      "options": [
+        {
+          "id": "a",
+          "label": "Banter that sometimes has a target",
+          "valueImpacts": { "respect": -2, "trust": -1, "courage": -1 },
+          "insight": "When the jokes need a target, somebody's always quietly bracing for their turn."
+        },
+        {
+          "id": "b",
+          "label": "Pretty quiet — logistics only",
+          "valueImpacts": { "trust": 1 },
+          "insight": "Not harmful, but the off-court connection that carries teams isn't being built either."
+        },
+        {
+          "id": "c",
+          "label": "Hype, plans, and looking out for each other",
+          "valueImpacts": { "respect": 2, "trust": 2, "care": 2 },
+          "insight": "The chat is a culture tell — this one builds belonging instead of pecking order."
+        }
+      ]
+    },
+    {
+      "id": "q-team-conflict",
+      "theme": "What usually happens",
+      "perspective": "team",
+      "prompt": "When something's off between teammates, on your team it usually…",
+      "options": [
+        {
+          "id": "a",
+          "label": "Gets talked about — just not to the person",
+          "valueImpacts": { "trust": -2, "courage": -2 },
+          "insight": "Talking around people instead of to them is how trust quietly drains out of a room."
+        },
+        {
+          "id": "b",
+          "label": "Gets buried until it blows up",
+          "valueImpacts": { "courage": -2, "trust": -1, "care": -1 },
+          "insight": "Avoidance doesn't resolve tension; it just compounds it until it costs you a game or a person."
+        },
+        {
+          "id": "c",
+          "label": "Gets raised directly, even when it's awkward",
+          "valueImpacts": { "courage": 3, "trust": 2, "accountability": 1 },
+          "insight": "Teams that can be direct without it becoming personal handle adversity far better."
+        }
+      ]
+    },
+    {
+      "id": "q-team-standards",
+      "theme": "What usually happens",
+      "perspective": "team",
+      "prompt": "When the team is tired and no coach is watching, the standard usually…",
+      "options": [
+        {
+          "id": "a",
+          "label": "Drops — effort gets quietly optional",
+          "valueImpacts": { "excellence": -3, "accountability": -2 },
+          "insight": "The standard you keep unsupervised is the real one. Everything else is a performance for staff."
+        },
+        {
+          "id": "b",
+          "label": "Depends entirely on who's in the room",
+          "valueImpacts": { "excellence": -1, "accountability": -1 },
+          "insight": "If the standard rides on specific people, it isn't a team standard yet."
+        },
+        {
+          "id": "c",
+          "label": "Holds, because people hold each other to it",
+          "valueImpacts": { "excellence": 3, "accountability": 2, "care": 1 },
+          "insight": "Peer-held standards are the most durable kind — they don't leave when the coach does."
+        }
+      ]
+    }
+  ]
+}
