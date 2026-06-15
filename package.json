@@ -6,7 +6,8 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "npm run build -w @team-culture-sim/sim-engine && concurrently -n server,web -c blue,green \"npm:dev:server\" \"npm:dev:web\"",
+    "dev": "bash scripts/dev.sh",
+    "restart": "bash scripts/restart-dev.sh",
     "dev:web": "npm run dev -w @team-culture-sim/web",
     "dev:server": "npm run dev -w @team-culture-sim/server",
     "build": "npm run build -w @team-culture-sim/sim-engine && npm run build -w @team-culture-sim/web",

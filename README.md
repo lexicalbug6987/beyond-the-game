@@ -22,10 +22,19 @@ npm install
 npm run dev
 ```
 
-`npm run dev` builds the engine, then runs the API (`:8787`) and web app (`:5173`) together.
+This always runs on the same URLs:
 
-- Open http://localhost:5173 to host a session.
-- The QR code points at your machine on the LAN, so phones on the same Wi-Fi can join. (The Vite dev server binds all interfaces; set `VITE_HOST=false` to bind localhost only.)
+- **App:** http://localhost:5173
+- **API:** http://localhost:8787
+- **Question bank (admin):** http://localhost:5173/admin.html
+
+`npm run dev` stops any stale servers on those ports first, then starts fresh. Save a file and the browser updates automatically (Vite hot reload); a manual refresh works too.
+
+For QR codes on phones over Wi‑Fi, run with LAN access:
+
+```bash
+VITE_HOST=true npm run dev
+```
 
 ## How team mode works
 

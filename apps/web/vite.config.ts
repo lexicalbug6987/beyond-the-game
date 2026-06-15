@@ -7,8 +7,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    strictPort: true,
+    open: true,
     // Expose on the LAN so teammates can scan the QR code from their phones.
-    // Set VITE_HOST=false to bind localhost only.
+    // Default is localhost-only via scripts/dev.sh (VITE_HOST=false).
     host: process.env.VITE_HOST !== "false",
     proxy: {
       "/api": {

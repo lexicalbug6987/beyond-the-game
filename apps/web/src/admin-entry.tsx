@@ -1,10 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import HostRouter from "./HostRouter";
+import AdminPanel from "./AdminPanel";
 import "./styles.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <HostRouter />
+    <AdminPanel onExit={() => { window.location.href = "/"; }} />
   </StrictMode>,
 );

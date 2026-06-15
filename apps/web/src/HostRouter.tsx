@@ -1,5 +1,5 @@
 import { useState } from "react";
-import HostApp from "./HostApp";
+import BeyondTheGameHost from "./BeyondTheGameHost";
 import PlayerApp from "./PlayerApp";
 
 function joinCodeFromUrl(): string | null {
@@ -7,8 +7,11 @@ function joinCodeFromUrl(): string | null {
   return code ? code.toUpperCase() : null;
 }
 
-export default function App() {
+/** Beyond the Game — team session host flow only. */
+export default function HostRouter() {
   const [joinCode] = useState(joinCodeFromUrl);
+
   if (joinCode) return <PlayerApp code={joinCode} />;
-  return <HostApp />;
+
+  return <BeyondTheGameHost />;
 }
