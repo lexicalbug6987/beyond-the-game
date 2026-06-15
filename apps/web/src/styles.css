@@ -204,8 +204,8 @@ h1 {
 
 .primary {
   border: none;
-  background: linear-gradient(135deg, #246c64, #cdd1a2);
-  color: #1a1614;
+  background: #246c64;
+  color: #e8dfd0;
   font-weight: 700;
   padding: 0.75rem 1rem;
   border-radius: 12px;
