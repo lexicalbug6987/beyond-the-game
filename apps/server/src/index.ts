@@ -66,6 +66,20 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, sessions: sessions.size });
 });
 
+app.post("/api/admin/auth", (req, res) => {
+  const password = process.env.ADMIN_PASSWORD;
+  if (!password) {
+    res.status(503).json({ error: "Admin password not configured" });
+    return;
+  }
+  const attempt = String(req.body?.password ?? "");
+  if (attempt === password) {
+    res.json({ ok: true });
+  } else {
+    res.status(401).json({ error: "Incorrect password" });
+  }
+});
+
 // Expose the quiz content so the client always matches the server's scoring.
 app.get("/api/quiz", (_req, res) => {
   res.json(config);
