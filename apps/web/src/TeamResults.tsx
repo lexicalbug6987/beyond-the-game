@@ -1,7 +1,9 @@
 import { TIER_LABEL, type TeamValueLevel } from "@team-culture-sim/sim-engine";
 import type { TeamResults } from "./api";
+import { useContent } from "./content";
 
 export function TeamResultsView({ results }: { results: TeamResults }) {
+  const c = useContent();
   const ordered = [...results.levels].sort((a, b) => {
     if (a.tier === "untested" && b.tier !== "untested") return 1;
     if (b.tier === "untested" && a.tier !== "untested") return -1;
@@ -11,11 +13,8 @@ export function TeamResultsView({ results }: { results: TeamResults }) {
   return (
     <>
       <section className="panel">
-        <h2>Team value scores</h2>
-        <p className="muted small">
-          Pooled from everyone's answers. The bar is the team's score; the chip shows how much you
-          agree with each other.
-        </p>
+        <h2>{c("hostResults", "valueScoresTitle")}</h2>
+        <p className="muted small">{c("hostResults", "valueScoresHint")}</p>
         <div className="levels">
           {ordered.map((v) => (
             <TeamScoreBar key={v.value} level={v} />
@@ -25,17 +24,18 @@ export function TeamResultsView({ results }: { results: TeamResults }) {
 
       {results.divided.length > 0 && (
         <section className="panel">
-          <h2>Where you see it differently</h2>
+          <h2>{c("hostResults", "dividedTitle")}</h2>
           <p className="muted">
-            The team is split on {results.divided.map((d) => d.label).join(" and ")}. Some of you
-            feel it's strong here and some don't — usually the most useful thing to talk about.
+            {c("hostResults", "dividedPrefix")}{" "}
+            {results.divided.map((d) => d.label).join(` ${c("hostResults", "dividedJoinWord")} `)}.{" "}
+            {c("hostResults", "dividedSuffix")}
           </p>
         </section>
       )}
 
       {results.growthAreas.length > 0 && (
         <section className="panel">
-          <h2>Where to grow together</h2>
+          <h2>{c("hostResults", "growTitle")}</h2>
           <div className="growth-list">
             {results.growthAreas.map((g) => (
               <article key={g.value} className="growth-card">
@@ -54,6 +54,7 @@ export function TeamResultsView({ results }: { results: TeamResults }) {
 }
 
 function TeamScoreBar({ level }: { level: TeamValueLevel }) {
+  const c = useContent();
   const untested = level.tier === "untested";
   return (
     <div className={`level-row ${level.tier}`}>
@@ -70,7 +71,10 @@ function TeamScoreBar({ level }: { level: TeamValueLevel }) {
         <span className="level-blurb">{level.blurb}</span>
         {!untested && (
           <span className={`agreement ${level.agreement < 60 ? "low" : "ok"}`}>
-            {level.agreement < 60 ? "Split" : "Agreed"} · {level.agreement}%
+            {level.agreement < 60
+              ? c("hostResults", "agreementSplit")
+              : c("hostResults", "agreementAgreed")}{" "}
+            · {level.agreement}%
           </span>
         )}
       </div>

@@ -1,18 +1,19 @@
 import { useState, type ReactNode } from "react";
+import { ADMIN_TOKEN_KEY } from "./adminAuth";
 
-const SESSION_KEY = "admin_authed";
-
-async function checkPassword(password: string): Promise<boolean> {
+async function checkPassword(password: string): Promise<string | null> {
   const res = await fetch("/api/admin/auth", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ password }),
   });
-  return res.ok;
+  if (!res.ok) return null;
+  const body = (await res.json().catch(() => ({}))) as { token?: string };
+  return body.token ?? null;
 }
 
 export default function AdminGate({ children }: { children: ReactNode }) {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem(SESSION_KEY) === "1");
+  const [authed, setAuthed] = useState(() => Boolean(sessionStorage.getItem(ADMIN_TOKEN_KEY)));
   const [input, setInput] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,10 +24,10 @@ export default function AdminGate({ children }: { children: ReactNode }) {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const ok = await checkPassword(input);
+    const token = await checkPassword(input);
     setLoading(false);
-    if (ok) {
-      sessionStorage.setItem(SESSION_KEY, "1");
+    if (token) {
+      sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
       setAuthed(true);
     } else {
       setError("Incorrect password");

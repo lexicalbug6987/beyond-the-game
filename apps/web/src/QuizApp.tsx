@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { TIER_LABEL, type QuizGrowthArea, type ValueLevel } from "@team-culture-sim/sim-engine";
 import { useQuizResult, useQuizStore } from "./store/quizStore";
 import { submitAnswers } from "./api";
+import { useContent } from "./content";
 
 interface TeamContext {
   code: string;
@@ -23,11 +24,8 @@ export default function QuizApp({
   return <QuizQuestionScreen onExit={onExit} team={team} />;
 }
 
-function perspectiveTag(perspective: "self" | "team"): string {
-  return perspective === "team" ? "About your team" : "About you";
-}
-
 function QuizQuestionScreen({ onExit, team }: { onExit: () => void; team?: TeamContext }) {
+  const c = useContent();
   const config = useQuizStore((s) => s.config);
   const index = useQuizStore((s) => s.index);
   const answers = useQuizStore((s) => s.answers);
@@ -43,14 +41,19 @@ function QuizQuestionScreen({ onExit, team }: { onExit: () => void; team?: TeamC
     <div className="app narrow">
       <header className="hero">
         <button className="link-back" onClick={index === 0 ? onExit : back}>
-          ← {index === 0 ? (team ? "Leave" : "Home") : "Back"}
+          ←{" "}
+          {index === 0
+            ? team
+              ? c("quiz", "leaveButton")
+              : c("quiz", "homeButton")
+            : c("quiz", "backButton")}
         </button>
         <div className="quiz-tags">
           <span className={`perspective-pill ${question.perspective}`}>
-            {perspectiveTag(question.perspective)}
+            {question.perspective === "team" ? c("quiz", "teamTag") : c("quiz", "selfTag")}
           </span>
           <span className="eyebrow inline">
-            {question.theme} · {index + 1} of {total}
+            {question.theme} · {index + 1} {c("quiz", "progressOf")} {total}
           </span>
         </div>
         <h1 className="quiz-prompt">{question.prompt}</h1>
@@ -73,9 +76,7 @@ function QuizQuestionScreen({ onExit, team }: { onExit: () => void; team?: TeamC
           ))}
         </div>
         <p className="muted small">
-          {question.perspective === "team"
-            ? "Answer honestly about how things usually go — there's no wrong answer."
-            : "Pick the one closest to what you'd really do — not the \"right\" answer."}
+          {question.perspective === "team" ? c("quiz", "teamHint") : c("quiz", "selfHint")}
         </p>
       </section>
     </div>
@@ -83,6 +84,7 @@ function QuizQuestionScreen({ onExit, team }: { onExit: () => void; team?: TeamC
 }
 
 function TeamSubmit({ team, onExit }: { team: TeamContext; onExit: () => void }) {
+  const c = useContent();
   const answers = useQuizStore((s) => s.answers);
   const result = useQuizResult();
   const [status, setStatus] = useState<"submitting" | "done" | "error">("submitting");
@@ -112,12 +114,12 @@ function TeamSubmit({ team, onExit }: { team: TeamContext; onExit: () => void })
     return (
       <div className="app narrow">
         <header className="hero">
-          <h1>Hmm, that didn't send</h1>
+          <h1>{c("playerSubmit", "errorTitle")}</h1>
           <p className="lede">{error}</p>
         </header>
         <div className="footer-actions">
           <button className="primary" onClick={() => setAttempt((a) => a + 1)}>
-            Try again
+            {c("playerSubmit", "errorRetryButton")}
           </button>
         </div>
       </div>
@@ -131,27 +133,30 @@ function TeamSubmit({ team, onExit }: { team: TeamContext; onExit: () => void })
     <div className="app narrow">
       <header className="hero">
         <p className="eyebrow">{team.teamName}</p>
-        <h1>{status === "submitting" ? "Sending your answers…" : "You're in. Thanks."}</h1>
+        <h1>{status === "submitting" ? c("playerSubmit", "sendingTitle") : c("playerSubmit", "doneTitle")}</h1>
         <p className="lede">
-          Your answers are anonymous. They've been added to {team.teamName}'s results
-          {count > 0 ? ` — ${count} ${count === 1 ? "person has" : "people have"} finished so far.` : "."}
+          {c("playerSubmit", "anonymousPrefix")} {team.teamName}
+          {c("playerSubmit", "anonymousSuffix")}
+          {count > 0
+            ? ` — ${count} ${count === 1 ? c("playerSubmit", "finishedSingular") : c("playerSubmit", "finishedPlural")}`
+            : "."}
         </p>
       </header>
 
       {status === "done" && (topStrength || topGrowth) && (
         <section className="panel">
-          <h2>Just for you</h2>
-          <p className="muted">A quick read on your own answers (only you see this):</p>
+          <h2>{c("playerSubmit", "justForYouHeading")}</h2>
+          <p className="muted">{c("playerSubmit", "justForYouHint")}</p>
           <ul className="pulse">
             {topStrength && (
               <li>
-                <span>You lean on</span>
+                <span>{c("playerSubmit", "leanOnLabel")}</span>
                 <strong>{topStrength}</strong>
               </li>
             )}
             {topGrowth && (
               <li>
-                <span>Room to grow</span>
+                <span>{c("playerSubmit", "growLabel")}</span>
                 <strong>{topGrowth}</strong>
               </li>
             )}
@@ -160,15 +165,12 @@ function TeamSubmit({ team, onExit }: { team: TeamContext; onExit: () => void })
       )}
 
       <section className="panel">
-        <p className="muted">
-          The full team picture shows up on the shared screen once everyone's done. Hand the device
-          back or pass the code to the next teammate.
-        </p>
+        <p className="muted">{c("playerSubmit", "waitingNote")}</p>
       </section>
 
       <div className="footer-actions">
         <button className="ghost" onClick={onExit}>
-          Done
+          {c("playerSubmit", "doneButton")}
         </button>
       </div>
     </div>

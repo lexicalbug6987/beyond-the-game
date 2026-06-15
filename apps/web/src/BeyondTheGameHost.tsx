@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { createSession, getResults, getSession, type TeamResults } from "./api";
 import { TeamResultsView } from "./TeamResults";
+import { useContent } from "./content";
 
 type Phase = "setup" | "lobby" | "results";
 
 export default function BeyondTheGameHost() {
+  const c = useContent();
   const [phase, setPhase] = useState<Phase>("setup");
   const [teamName, setTeamName] = useState("");
   const [code, setCode] = useState("");
@@ -40,22 +42,18 @@ export default function BeyondTheGameHost() {
     return (
       <div className="app narrow">
         <header className="hero">
-          <p className="eyebrow">Beyond the Game</p>
-          <h1>How does your team actually show up?</h1>
-          <p className="lede">
-            Create a session, put the QR code on a screen, and everyone answers anonymously on their
-            own phone — how they'd respond and what usually happens on the team. You'll get one
-            shared read on your culture, including where you agree and where to grow.
-          </p>
+          <p className="eyebrow">{c("hostSetup", "eyebrow")}</p>
+          <h1>{c("hostSetup", "title")}</h1>
+          <p className="lede">{c("hostSetup", "lede")}</p>
         </header>
         <section className="panel">
           <label className="field-label" htmlFor="teamName">
-            Team name
+            {c("hostSetup", "teamNameLabel")}
           </label>
           <input
             id="teamName"
             className="text-input"
-            placeholder="e.g. Varsity Volleyball"
+            placeholder={c("hostSetup", "teamNamePlaceholder")}
             value={teamName}
             onChange={(e) => setTeamName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleCreate()}
@@ -63,7 +61,7 @@ export default function BeyondTheGameHost() {
           />
           {error && <p className="error-text">{error}</p>}
           <button className="primary block" onClick={handleCreate} disabled={creating}>
-            {creating ? "Creating…" : "Create session"}
+            {creating ? c("hostSetup", "creatingButton") : c("hostSetup", "createButton")}
           </button>
         </section>
       </div>
@@ -98,6 +96,7 @@ function Lobby({
   onReveal: () => void;
   onExit: () => void;
 }) {
+  const c = useContent();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [count, setCount] = useState(0);
 
@@ -127,17 +126,17 @@ function Lobby({
     <div className="app narrow">
       <header className="hero">
         <button className="link-back" onClick={onExit}>
-          ← New session
+          ← {c("hostLobby", "backButton")}
         </button>
         <p className="eyebrow">{teamName}</p>
-        <h1>Scan to join</h1>
-        <p className="lede">Everyone scans this, answers on their phone, and it stays anonymous.</p>
+        <h1>{c("hostLobby", "title")}</h1>
+        <p className="lede">{c("hostLobby", "lede")}</p>
       </header>
 
       <section className="panel join-panel">
         <canvas ref={canvasRef} className="qr-canvas" />
         <div className="join-meta">
-          <p className="muted small">Or go to this address and enter the code:</p>
+          <p className="muted small">{c("hostLobby", "addressHint")}</p>
           <p className="join-url">{joinUrl.replace(/^https?:\/\//, "")}</p>
           <div className="join-code">{code}</div>
         </div>
@@ -146,14 +145,17 @@ function Lobby({
       <section className="panel lobby-count">
         <div className="count-badge">{count}</div>
         <div>
-          <strong>{count === 1 ? "1 teammate" : `${count} teammates`} finished</strong>
-          <p className="muted small">Updates live as people complete it.</p>
+          <strong>
+            {count === 1 ? c("hostLobby", "countOne") : `${count} ${c("hostLobby", "countMany")}`}{" "}
+            {c("hostLobby", "finishedLabel")}
+          </strong>
+          <p className="muted small">{c("hostLobby", "liveHint")}</p>
         </div>
       </section>
 
       <div className="footer-actions">
         <button className="primary" onClick={onReveal} disabled={count === 0}>
-          Reveal team results
+          {c("hostLobby", "revealButton")}
         </button>
       </div>
     </div>
@@ -171,6 +173,7 @@ function Results({
   onBack: () => void;
   onExit: () => void;
 }) {
+  const c = useContent();
   const [results, setResults] = useState<TeamResults | null>(null);
   const [error, setError] = useState("");
 
@@ -186,12 +189,12 @@ function Results({
     return (
       <div className="app narrow">
         <header className="hero">
-          <h1>Couldn't load results</h1>
+          <h1>{c("hostResults", "loadErrorTitle")}</h1>
           <p className="lede">{error}</p>
         </header>
         <div className="footer-actions">
           <button className="primary" onClick={refresh}>
-            Retry
+            {c("hostResults", "retryButton")}
           </button>
         </div>
       </div>
@@ -202,7 +205,7 @@ function Results({
     return (
       <div className="app narrow">
         <header className="hero">
-          <h1>Loading…</h1>
+          <h1>{c("hostResults", "loadingTitle")}</h1>
         </header>
       </div>
     );
@@ -212,13 +215,16 @@ function Results({
     <div className="app narrow">
       <header className="hero">
         <button className="link-back" onClick={onBack}>
-          ← Back to lobby
+          ← {c("hostResults", "backButton")}
         </button>
         <p className="eyebrow">
           {teamName} · {results.participantCount}{" "}
-          {results.participantCount === 1 ? "response" : "responses"} · {results.overallScore}/100
+          {results.participantCount === 1
+            ? c("hostResults", "responseSingular")
+            : c("hostResults", "responsePlural")}{" "}
+          · {results.overallScore}/100
         </p>
-        <h1>Who your team actually is</h1>
+        <h1>{c("hostResults", "title")}</h1>
         <p className="lede">{results.headline}</p>
       </header>
 
@@ -226,10 +232,10 @@ function Results({
 
       <div className="footer-actions">
         <button className="primary" onClick={refresh}>
-          Refresh
+          {c("hostResults", "refreshButton")}
         </button>
         <button className="ghost" onClick={onExit}>
-          New session
+          {c("hostResults", "newSessionButton")}
         </button>
       </div>
     </div>

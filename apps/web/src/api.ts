@@ -10,8 +10,8 @@ export type TeamResults = TeamQuizResult & { teamName: string; code: string };
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
-    headers: { "Content-Type": "application/json" },
     ...options,
+    headers: { "Content-Type": "application/json", ...(options?.headers ?? {}) },
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -43,4 +43,33 @@ export function submitAnswers(
 
 export function getResults(code: string): Promise<TeamResults> {
   return request(`/api/sessions/${encodeURIComponent(code)}/results`);
+}
+
+export interface ContentField {
+  key: string;
+  label: string;
+  value: string;
+  multiline?: boolean;
+}
+
+export interface ContentPage {
+  key: string;
+  title: string;
+  description?: string;
+  fields: ContentField[];
+}
+
+export function getContent(): Promise<{ pages: ContentPage[] }> {
+  return request("/api/content");
+}
+
+export function saveContent(
+  pages: ContentPage[],
+  token: string,
+): Promise<{ ok: true; pages: ContentPage[] }> {
+  return request("/api/content", {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ pages }),
+  });
 }

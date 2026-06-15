@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import QuizApp from "./QuizApp";
 import { getSession } from "./api";
 import { useQuizStore } from "./store/quizStore";
+import { useContent } from "./content";
 
 type Phase = "loading" | "notfound" | "intro" | "quiz";
 
 export default function PlayerApp({ code }: { code: string }) {
+  const c = useContent();
   const [phase, setPhase] = useState<Phase>("loading");
   const [teamName, setTeamName] = useState("");
   const resetQuiz = useQuizStore((s) => s.reset);
@@ -23,7 +25,7 @@ export default function PlayerApp({ code }: { code: string }) {
     return (
       <div className="app narrow">
         <header className="hero">
-          <h1>Joining…</h1>
+          <h1>{c("playerIntro", "loadingTitle")}</h1>
         </header>
       </div>
     );
@@ -33,11 +35,9 @@ export default function PlayerApp({ code }: { code: string }) {
     return (
       <div className="app narrow">
         <header className="hero">
-          <p className="eyebrow">Code {code}</p>
-          <h1>That session isn't open</h1>
-          <p className="lede">
-            Double-check the code with whoever's running it, or scan the QR code again.
-          </p>
+          <p className="eyebrow">{c("playerNotFound", "codePrefix")} {code}</p>
+          <h1>{c("playerNotFound", "title")}</h1>
+          <p className="lede">{c("playerNotFound", "lede")}</p>
         </header>
       </div>
     );
@@ -47,12 +47,9 @@ export default function PlayerApp({ code }: { code: string }) {
     return (
       <div className="app narrow">
         <header className="hero">
-          <p className="eyebrow">Beyond the Game · {teamName}</p>
-          <h1>Let's check your team's culture</h1>
-          <p className="lede">
-            About 14 quick questions — some about how you'd respond, some about what usually happens
-            on your team. It's completely anonymous, and it rolls up into one team result.
-          </p>
+          <p className="eyebrow">{c("playerIntro", "eyebrowPrefix")} · {teamName}</p>
+          <h1>{c("playerIntro", "title")}</h1>
+          <p className="lede">{c("playerIntro", "lede")}</p>
         </header>
         <section className="panel">
           <button
@@ -62,9 +59,9 @@ export default function PlayerApp({ code }: { code: string }) {
               setPhase("quiz");
             }}
           >
-            Start
+            {c("playerIntro", "startButton")}
           </button>
-          <p className="muted small">Answer honestly — nobody sees your individual answers.</p>
+          <p className="muted small">{c("playerIntro", "privacyHint")}</p>
         </section>
       </div>
     );

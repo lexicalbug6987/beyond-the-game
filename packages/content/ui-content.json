@@ -1,0 +1,118 @@
+{
+  "pages": [
+    {
+      "key": "hostSetup",
+      "title": "Host · Start screen",
+      "description": "The first screen the organiser sees when creating a session.",
+      "fields": [
+        { "key": "eyebrow", "label": "Eyebrow (small label above the heading)", "value": "Beyond the Game" },
+        { "key": "title", "label": "Heading", "value": "How does your team actually show up?", "multiline": true },
+        { "key": "lede", "label": "Intro paragraph", "value": "Create a session, put the QR code on a screen, and everyone answers anonymously on their own phone — how they'd respond and what usually happens on the team. You'll get one shared read on your culture, including where you agree and where to grow.", "multiline": true },
+        { "key": "teamNameLabel", "label": "Team name field label", "value": "Team name" },
+        { "key": "teamNamePlaceholder", "label": "Team name placeholder", "value": "e.g. Varsity Volleyball" },
+        { "key": "createButton", "label": "Create button", "value": "Create session" },
+        { "key": "creatingButton", "label": "Create button (while loading)", "value": "Creating…" }
+      ]
+    },
+    {
+      "key": "hostLobby",
+      "title": "Host · Lobby / join screen",
+      "description": "Shown while teammates scan the QR code and join.",
+      "fields": [
+        { "key": "backButton", "label": "Back link", "value": "New session" },
+        { "key": "title", "label": "Heading", "value": "Scan to join" },
+        { "key": "lede", "label": "Intro paragraph", "value": "Everyone scans this, answers on their phone, and it stays anonymous.", "multiline": true },
+        { "key": "addressHint", "label": "Manual address hint", "value": "Or go to this address and enter the code:" },
+        { "key": "countOne", "label": "Finished count (one teammate)", "value": "1 teammate" },
+        { "key": "countMany", "label": "Finished count word (many)", "value": "teammates" },
+        { "key": "finishedLabel", "label": "Finished count label", "value": "finished" },
+        { "key": "liveHint", "label": "Live count hint", "value": "Updates live as people complete it." },
+        { "key": "revealButton", "label": "Reveal results button", "value": "Reveal team results" }
+      ]
+    },
+    {
+      "key": "hostResults",
+      "title": "Host · Team results screen",
+      "description": "The shared read-out of the team's culture.",
+      "fields": [
+        { "key": "backButton", "label": "Back link", "value": "Back to lobby" },
+        { "key": "title", "label": "Heading", "value": "Who your team actually is" },
+        { "key": "responseSingular", "label": "Response count word (one)", "value": "response" },
+        { "key": "responsePlural", "label": "Response count word (many)", "value": "responses" },
+        { "key": "refreshButton", "label": "Refresh button", "value": "Refresh" },
+        { "key": "newSessionButton", "label": "New session button", "value": "New session" },
+        { "key": "loadingTitle", "label": "Loading heading", "value": "Loading…" },
+        { "key": "loadErrorTitle", "label": "Load error heading", "value": "Couldn't load results" },
+        { "key": "retryButton", "label": "Retry button", "value": "Retry" },
+        { "key": "valueScoresTitle", "label": "Value scores section heading", "value": "Team value scores" },
+        { "key": "valueScoresHint", "label": "Value scores hint", "value": "Pooled from everyone's answers. The bar is the team's score; the chip shows how much you agree with each other.", "multiline": true },
+        { "key": "agreementSplit", "label": "Low-agreement chip", "value": "Split" },
+        { "key": "agreementAgreed", "label": "High-agreement chip", "value": "Agreed" },
+        { "key": "dividedTitle", "label": "Disagreement section heading", "value": "Where you see it differently" },
+        { "key": "dividedJoinWord", "label": "Word joining the split value names", "value": "and" },
+        { "key": "dividedPrefix", "label": "Disagreement sentence (before the value names)", "value": "The team is split on", "multiline": true },
+        { "key": "dividedSuffix", "label": "Disagreement sentence (after the value names)", "value": "Some of you feel it's strong here and some don't — usually the most useful thing to talk about.", "multiline": true },
+        { "key": "growTitle", "label": "Growth section heading", "value": "Where to grow together" }
+      ]
+    },
+    {
+      "key": "playerIntro",
+      "title": "Player · Intro screen",
+      "description": "What a teammate sees right after joining, before the quiz.",
+      "fields": [
+        { "key": "loadingTitle", "label": "Loading heading (while joining)", "value": "Joining…" },
+        { "key": "eyebrowPrefix", "label": "Eyebrow prefix (team name is added after)", "value": "Beyond the Game" },
+        { "key": "title", "label": "Heading", "value": "Let's check your team's culture", "multiline": true },
+        { "key": "lede", "label": "Intro paragraph", "value": "About 14 quick questions — some about how you'd respond, some about what usually happens on your team. It's completely anonymous, and it rolls up into one team result.", "multiline": true },
+        { "key": "startButton", "label": "Start button", "value": "Start" },
+        { "key": "privacyHint", "label": "Privacy hint", "value": "Answer honestly — nobody sees your individual answers." }
+      ]
+    },
+    {
+      "key": "playerNotFound",
+      "title": "Player · Session not found",
+      "description": "Shown when a join code doesn't match an open session.",
+      "fields": [
+        { "key": "codePrefix", "label": "Code label (before the join code)", "value": "Code" },
+        { "key": "title", "label": "Heading", "value": "That session isn't open" },
+        { "key": "lede", "label": "Intro paragraph", "value": "Double-check the code with whoever's running it, or scan the QR code again.", "multiline": true }
+      ]
+    },
+    {
+      "key": "quiz",
+      "title": "Player · Quiz questions",
+      "description": "Tags and hints shown on each question (the questions themselves live in the Question bank).",
+      "fields": [
+        { "key": "selfTag", "label": "\"About you\" tag", "value": "About you" },
+        { "key": "teamTag", "label": "\"About your team\" tag", "value": "About your team" },
+        { "key": "selfHint", "label": "Hint under personal questions", "value": "Pick the one closest to what you'd really do — not the \"right\" answer.", "multiline": true },
+        { "key": "teamHint", "label": "Hint under team questions", "value": "Answer honestly about how things usually go — there's no wrong answer.", "multiline": true },
+        { "key": "progressOf", "label": "Progress separator (\"3 of 14\")", "value": "of" },
+        { "key": "leaveButton", "label": "Back link on first question (team)", "value": "Leave" },
+        { "key": "homeButton", "label": "Back link on first question (solo)", "value": "Home" },
+        { "key": "backButton", "label": "Back link on later questions", "value": "Back" }
+      ]
+    },
+    {
+      "key": "playerSubmit",
+      "title": "Player · Thanks screen",
+      "description": "Shown after a teammate submits their answers.",
+      "fields": [
+        { "key": "sendingTitle", "label": "Heading (while sending)", "value": "Sending your answers…" },
+        { "key": "doneTitle", "label": "Heading (after sending)", "value": "You're in. Thanks." },
+        { "key": "errorTitle", "label": "Heading (if sending failed)", "value": "Hmm, that didn't send" },
+        { "key": "errorRetryButton", "label": "Retry button (if sending failed)", "value": "Try again" },
+        { "key": "anonymousPrefix", "label": "Confirmation sentence (before team name)", "value": "Your answers are anonymous. They've been added to", "multiline": true },
+        { "key": "anonymousSuffix", "label": "Confirmation sentence (after team name)", "value": "'s results" },
+        { "key": "finishedSingular", "label": "Finished count tail (one)", "value": "person has finished so far." },
+        { "key": "finishedPlural", "label": "Finished count tail (many)", "value": "people have finished so far." },
+        { "key": "justForYouHeading", "label": "Personal read heading", "value": "Just for you" },
+        { "key": "justForYouHint", "label": "Personal read hint", "value": "A quick read on your own answers (only you see this):", "multiline": true },
+        { "key": "leanOnLabel", "label": "Strength label", "value": "You lean on" },
+        { "key": "growLabel", "label": "Growth label", "value": "Room to grow" },
+        { "key": "waitingNote", "label": "Closing note", "value": "The full team picture shows up on the shared screen once everyone's done. Hand the device back or pass the code to the next teammate.", "multiline": true },
+        { "key": "doneButton", "label": "Done button", "value": "Done" }
+      ]
+    }
+  ]
+}

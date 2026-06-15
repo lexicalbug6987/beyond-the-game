@@ -1,0 +1,1 @@
+- [Editable UI content](editable-ui-content.md) — admin-editable page copy via ui-content.json + useContent(); what's intentionally excluded and the restart gotcha.

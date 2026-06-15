@@ -15,6 +15,27 @@ const quizPath = require.resolve("@team-culture-sim/content/quiz.json");
 const config = JSON.parse(readFileSync(quizPath, "utf-8")) as QuizConfig;
 const validQuestionIds = new Set(config.questions.map((q) => q.id));
 
+// ── Editable UI content ────────────────────────────────────────────────────────
+interface ContentField {
+  key: string;
+  label: string;
+  value: string;
+  multiline?: boolean;
+}
+interface ContentPage {
+  key: string;
+  title: string;
+  description?: string;
+  fields: ContentField[];
+}
+const uiContentPath = require.resolve("@team-culture-sim/content/ui-content.json");
+const uiDefaults = JSON.parse(readFileSync(uiContentPath, "utf-8")) as { pages: ContentPage[] };
+// Valid page/field keys, used to reject anything unexpected on save.
+const validFieldKeys = new Map<string, Set<string>>(
+  uiDefaults.pages.map((p) => [p.key, new Set(p.fields.map((f) => f.key))]),
+);
+const MAX_FIELD_LENGTH = 2000;
+
 interface Session {
   code: string;
   teamName: string;
@@ -24,9 +45,43 @@ interface Session {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_FILE = join(__dirname, "..", "data", "sessions.json");
+const UI_DATA_FILE = join(__dirname, "..", "data", "ui-content.json");
 
 const sessions = new Map<string, Session>();
 loadFromDisk();
+
+// Saved UI text overrides, keyed by pageKey → fieldKey → value.
+let uiOverrides: Record<string, Record<string, string>> = loadUiOverrides();
+
+function loadUiOverrides(): Record<string, Record<string, string>> {
+  if (!existsSync(UI_DATA_FILE)) return {};
+  try {
+    return JSON.parse(readFileSync(UI_DATA_FILE, "utf-8")) as Record<string, Record<string, string>>;
+  } catch (err) {
+    console.warn("Could not load UI content file:", err);
+    return {};
+  }
+}
+
+function saveUiOverrides() {
+  try {
+    mkdirSync(dirname(UI_DATA_FILE), { recursive: true });
+    writeFileSync(UI_DATA_FILE, JSON.stringify(uiOverrides, null, 2));
+  } catch (err) {
+    console.warn("Could not save UI content file:", err);
+  }
+}
+
+/** Merge saved overrides onto the bundled defaults so new fields always render. */
+function mergedContentPages(): ContentPage[] {
+  return uiDefaults.pages.map((page) => ({
+    ...page,
+    fields: page.fields.map((field) => ({
+      ...field,
+      value: uiOverrides[page.key]?.[field.key] ?? field.value,
+    })),
+  }));
+}
 
 function loadFromDisk() {
   if (!existsSync(DATA_FILE)) return;
@@ -67,7 +122,7 @@ app.use(helmet());
 app.disable("x-powered-by");
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-app.use(cors({ origin: true, methods: ["GET", "POST"], credentials: false }));
+app.use(cors({ origin: true, methods: ["GET", "POST", "PUT"], credentials: false }));
 
 // ── Body parsing ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: "32kb" }));
@@ -119,6 +174,38 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, sessions: sessions.size });
 });
 
+// ── Admin tokens ───────────────────────────────────────────────────────────────
+// Issued on successful auth; required for content writes. In-memory, 24h expiry.
+const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+const adminTokens = new Map<string, number>(); // token → expiresAt
+
+function issueToken(): string {
+  const token = randomUUID();
+  adminTokens.set(token, Date.now() + TOKEN_TTL_MS);
+  return token;
+}
+
+function isValidToken(token: string | undefined): boolean {
+  if (!token) return false;
+  const expiresAt = adminTokens.get(token);
+  if (!expiresAt) return false;
+  if (Date.now() > expiresAt) {
+    adminTokens.delete(token);
+    return false;
+  }
+  return true;
+}
+
+function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const header = req.headers.authorization ?? "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  if (!isValidToken(token)) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  next();
+}
+
 app.post("/api/admin/auth", adminAuthLimiter, (req, res) => {
   const password = process.env.ADMIN_PASSWORD;
   if (!password) {
@@ -127,7 +214,7 @@ app.post("/api/admin/auth", adminAuthLimiter, (req, res) => {
   }
   const attempt = String(req.body?.password ?? "");
   if (attempt === password) {
-    res.json({ ok: true });
+    res.json({ ok: true, token: issueToken() });
   } else {
     res.status(401).json({ error: "Incorrect password" });
   }
@@ -136,6 +223,36 @@ app.post("/api/admin/auth", adminAuthLimiter, (req, res) => {
 // Expose the quiz content so the client always matches the server's scoring.
 app.get("/api/quiz", (_req, res) => {
   res.json(config);
+});
+
+// ── Editable page content ───────────────────────────────────────────────────────
+app.get("/api/content", (_req, res) => {
+  res.json({ pages: mergedContentPages() });
+});
+
+app.put("/api/content", requireAdmin, (req, res) => {
+  const incoming = req.body?.pages;
+  if (!Array.isArray(incoming)) {
+    res.status(400).json({ error: "Missing pages" });
+    return;
+  }
+
+  // Keep only known page/field keys with string values; ignore anything else.
+  const next: Record<string, Record<string, string>> = {};
+  for (const page of incoming) {
+    const pageKey = String(page?.key ?? "");
+    const allowedFields = validFieldKeys.get(pageKey);
+    if (!allowedFields || !Array.isArray(page?.fields)) continue;
+    for (const field of page.fields) {
+      const fieldKey = String(field?.key ?? "");
+      if (!allowedFields.has(fieldKey) || typeof field?.value !== "string") continue;
+      (next[pageKey] ??= {})[fieldKey] = field.value.slice(0, MAX_FIELD_LENGTH);
+    }
+  }
+
+  uiOverrides = next;
+  saveUiOverrides();
+  res.json({ ok: true, pages: mergedContentPages() });
 });
 
 app.post("/api/sessions", createSessionLimiter, (req, res) => {
