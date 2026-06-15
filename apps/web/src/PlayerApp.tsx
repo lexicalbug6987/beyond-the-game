@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import QuizApp from "./QuizApp";
-import { getSession } from "./api";
+import { getQuiz, getSession } from "./api";
 import { useQuizStore } from "./store/quizStore";
 
 type Phase = "loading" | "notfound" | "intro" | "quiz";
@@ -9,6 +9,8 @@ export default function PlayerApp({ code }: { code: string }) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [teamName, setTeamName] = useState("");
   const resetQuiz = useQuizStore((s) => s.reset);
+  const loadConfig = useQuizStore((s) => s.loadConfig);
+  const questionCount = useQuizStore((s) => s.config.questions.length);
 
   useEffect(() => {
     getSession(code)
@@ -18,6 +20,12 @@ export default function PlayerApp({ code }: { code: string }) {
       })
       .catch(() => setPhase("notfound"));
   }, [code]);
+
+  useEffect(() => {
+    getQuiz()
+      .then(loadConfig)
+      .catch(() => {});
+  }, [loadConfig]);
 
   if (phase === "loading") {
     return (
@@ -50,8 +58,9 @@ export default function PlayerApp({ code }: { code: string }) {
           <p className="eyebrow">Beyond the Game · {teamName}</p>
           <h1>Let's check your team's culture</h1>
           <p className="lede">
-            About 14 quick questions — some about how you'd respond, some about what usually happens
-            on your team. It's completely anonymous, and it rolls up into one team result.
+            About {questionCount} quick questions — some about how you'd respond, some about what
+            usually happens on your team. It's completely anonymous, and it rolls up into one team
+            result.
           </p>
         </header>
         <section className="panel">

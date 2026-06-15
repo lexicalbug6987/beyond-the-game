@@ -1,4 +1,4 @@
-import type { TeamQuizResult } from "@team-culture-sim/sim-engine";
+import type { QuizConfig, TeamQuizResult } from "@team-culture-sim/sim-engine";
 
 export interface SessionInfo {
   code: string;
@@ -43,4 +43,15 @@ export function submitAnswers(
 
 export function getResults(code: string): Promise<TeamResults> {
   return request(`/api/sessions/${encodeURIComponent(code)}/results`);
+}
+
+export function getQuiz(): Promise<QuizConfig> {
+  return request("/api/quiz");
+}
+
+export function updateQuiz(config: QuizConfig): Promise<QuizConfig> {
+  return request("/api/quiz", {
+    method: "PUT",
+    body: JSON.stringify(config),
+  });
 }
