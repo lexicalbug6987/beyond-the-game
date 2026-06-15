@@ -9,7 +9,7 @@ export default defineConfig({
     port: 5000,
     strictPort: true,
     host: "0.0.0.0",
-    allowedHosts: "all",
+    allowedHosts: true,
     proxy: {
       "/api": {
         target: API_TARGET,
