@@ -42,7 +42,17 @@ VITE_HOST=true npm run dev
 2. Teammates scan the QR (or visit `/?s=CODE`) and complete the quiz anonymously.
 3. The host screen shows a live count and reveals the pooled team result on demand.
 
-Submissions are stored server-side (in memory, persisted to `apps/server/data/sessions.json`).
+Submissions are stored server-side in `apps/server/data/` locally, or in PostgreSQL when `DATABASE_URL` is set.
+
+### Replit / production persistence
+
+**Deployed apps on Replit reset their filesystem on every redeploy.** Admin edits (questions, page copy) will not survive unless you connect a database:
+
+1. In your Replit project, open **Database** (or **Storage & databases**) and create a **PostgreSQL** database.
+2. Replit injects `DATABASE_URL` into your deployment secrets automatically.
+3. Redeploy. The server stores quiz content, page copy, and sessions in Postgres and they persist across redeploys.
+
+Check `/api/health` — it returns `"storage": "postgres"` when connected, or `"file"` when using local files only.
 
 ## Scripts
 
@@ -55,5 +65,7 @@ Submissions are stored server-side (in memory, persisted to `apps/server/data/se
 ## Configuration
 
 - `PORT` (server) — API port, default `8787`
+- `DATABASE_URL` (server) — PostgreSQL connection string for persistent admin content and sessions (required on Replit deploy)
+- `DATA_DIR` (server) — local file storage directory, default `apps/server/data`
 - `API_TARGET` (web dev) — proxy target for `/api`, default `http://localhost:8787`
 - `VITE_HOST` (web dev) — set to `false` to bind localhost only

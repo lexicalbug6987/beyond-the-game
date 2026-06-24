@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import cors from "cors";
@@ -8,10 +8,12 @@ import express from "express";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import { aggregateSubmissions, type QuizConfig, type QuizSubmission } from "@team-culture-sim/sim-engine";
+import { createBlobStore, type BlobStore } from "./store.js";
 
-// Load quiz content via fs so this works the same under tsx and plain node.
+// Bundled defaults — never written at runtime.
 const require = createRequire(import.meta.url);
-const quizPath = require.resolve("@team-culture-sim/content/quiz.json");
+const bundledQuizPath = require.resolve("@team-culture-sim/content/quiz.json");
+const bundledQuiz = JSON.parse(readFileSync(bundledQuizPath, "utf-8")) as QuizConfig;
 
 const TEAM_VALUES = [
   "courage",
@@ -22,13 +24,14 @@ const TEAM_VALUES = [
   "accountability",
 ] as const;
 
-let config = JSON.parse(readFileSync(quizPath, "utf-8")) as QuizConfig;
+let config = bundledQuiz;
 let validQuestionIds = new Set(config.questions.map((q) => q.id));
+let store: BlobStore;
 
-function reloadQuiz(next: QuizConfig) {
+async function saveQuiz(next: QuizConfig) {
   config = next;
   validQuestionIds = new Set(config.questions.map((q) => q.id));
-  writeFileSync(quizPath, JSON.stringify(config, null, 2) + "\n");
+  await store.write("quiz", config);
 }
 
 function isTeamValue(value: string): value is (typeof TEAM_VALUES)[number] {
@@ -120,31 +123,23 @@ interface Session {
 }
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DATA_FILE = join(__dirname, "..", "data", "sessions.json");
-const UI_DATA_FILE = join(__dirname, "..", "data", "ui-content.json");
 
 const sessions = new Map<string, Session>();
-loadFromDisk();
 
 // Saved UI text overrides, keyed by pageKey → fieldKey → value.
-let uiOverrides: Record<string, Record<string, string>> = loadUiOverrides();
+let uiOverrides: Record<string, Record<string, string>> = {};
 
-function loadUiOverrides(): Record<string, Record<string, string>> {
-  if (!existsSync(UI_DATA_FILE)) return {};
-  try {
-    return JSON.parse(readFileSync(UI_DATA_FILE, "utf-8")) as Record<string, Record<string, string>>;
-  } catch (err) {
-    console.warn("Could not load UI content file:", err);
-    return {};
-  }
+async function loadUiOverrides(): Promise<Record<string, Record<string, string>>> {
+  const raw = await store.read("ui-content");
+  if (!raw || typeof raw !== "object") return {};
+  return raw as Record<string, Record<string, string>>;
 }
 
-function saveUiOverrides() {
+async function saveUiOverrides() {
   try {
-    mkdirSync(dirname(UI_DATA_FILE), { recursive: true });
-    writeFileSync(UI_DATA_FILE, JSON.stringify(uiOverrides, null, 2));
+    await store.write("ui-content", uiOverrides);
   } catch (err) {
-    console.warn("Could not save UI content file:", err);
+    console.warn("Could not save UI content:", err);
   }
 }
 
@@ -165,7 +160,7 @@ function contentField(pages: ContentPage[], pageKey: string, fieldKey: string): 
 }
 
 /** Keep quiz.json copy in sync with the host/player page content fields. */
-function syncQuizCopyFromUiPages() {
+async function syncQuizCopyFromUiPages() {
   const pages = mergedContentPages();
   const hostHeadline = contentField(pages, "hostSetup", "title");
   const hostLede = contentField(pages, "hostSetup", "lede");
@@ -177,46 +172,56 @@ function syncQuizCopyFromUiPages() {
     ...config,
     copy: { hostHeadline, hostLede, playerHeadline, playerLede },
   };
-  writeFileSync(quizPath, JSON.stringify(config, null, 2) + "\n");
+  await saveQuiz(config);
 }
 
 /** Keep saved page content in sync with quiz.json copy fields. */
-function syncUiOverridesFromQuizCopy(copy: NonNullable<QuizConfig["copy"]>) {
+async function syncUiOverridesFromQuizCopy(copy: NonNullable<QuizConfig["copy"]>) {
   (uiOverrides.hostSetup ??= {}).title = copy.hostHeadline;
   uiOverrides.hostSetup.lede = copy.hostLede;
   (uiOverrides.playerIntro ??= {}).title = copy.playerHeadline;
   uiOverrides.playerIntro.lede = copy.playerLede;
-  saveUiOverrides();
+  await saveUiOverrides();
 }
 
 /** On boot, migrate legacy quiz copy into page content if nothing was saved yet. */
-function migrateQuizCopyToUiIfNeeded() {
+async function migrateQuizCopyToUiIfNeeded() {
   if (!config.copy) return;
   const needsHostTitle = !uiOverrides.hostSetup?.title;
   const needsHostLede = !uiOverrides.hostSetup?.lede;
   if (!needsHostTitle && !needsHostLede) return;
-  syncUiOverridesFromQuizCopy(config.copy);
+  await syncUiOverridesFromQuizCopy(config.copy);
 }
 
-migrateQuizCopyToUiIfNeeded();
+async function loadSessionsFromStore() {
+  const raw = await store.read("sessions");
+  if (!Array.isArray(raw)) return;
+  for (const session of raw as Session[]) sessions.set(session.code, session);
+  console.log(`Loaded ${sessions.size} session(s) from storage.`);
+}
 
-function loadFromDisk() {
-  if (!existsSync(DATA_FILE)) return;
+async function saveSessionsToStore() {
   try {
-    const raw = JSON.parse(readFileSync(DATA_FILE, "utf-8")) as Session[];
-    for (const session of raw) sessions.set(session.code, session);
-    console.log(`Loaded ${sessions.size} session(s) from disk.`);
+    await store.write("sessions", [...sessions.values()]);
   } catch (err) {
-    console.warn("Could not load sessions file:", err);
+    console.warn("Could not save sessions:", err);
   }
 }
 
-function saveToDisk() {
+async function loadQuizFromStore() {
+  const saved = await store.read("quiz");
+  if (!saved) {
+    console.log("No saved quiz found — using bundled defaults.");
+    return;
+  }
   try {
-    mkdirSync(dirname(DATA_FILE), { recursive: true });
-    writeFileSync(DATA_FILE, JSON.stringify([...sessions.values()], null, 2));
+    config = validateQuizConfig(saved);
+    validQuestionIds = new Set(config.questions.map((q) => q.id));
+    console.log("Loaded quiz from storage.");
   } catch (err) {
-    console.warn("Could not save sessions file:", err);
+    console.warn("Saved quiz was invalid — using bundled defaults:", err);
+    config = bundledQuiz;
+    validQuestionIds = new Set(config.questions.map((q) => q.id));
   }
 }
 
@@ -288,7 +293,7 @@ app.use("/api", globalLimiter);
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, sessions: sessions.size });
+  res.json({ ok: true, sessions: sessions.size, storage: store?.backend() ?? "starting" });
 });
 
 // ── Admin tokens ───────────────────────────────────────────────────────────────
@@ -342,11 +347,11 @@ app.get("/api/quiz", (_req, res) => {
   res.json(config);
 });
 
-app.put("/api/quiz", requireAdmin, (req, res) => {
+app.put("/api/quiz", requireAdmin, async (req, res) => {
   try {
     const next = validateQuizConfig(req.body);
-    reloadQuiz(next);
-    if (next.copy) syncUiOverridesFromQuizCopy(next.copy);
+    await saveQuiz(next);
+    if (next.copy) await syncUiOverridesFromQuizCopy(next.copy);
     res.json(config);
   } catch (err) {
     res.status(400).json({ error: (err as Error).message });
@@ -358,7 +363,7 @@ app.get("/api/content", (_req, res) => {
   res.json({ pages: mergedContentPages() });
 });
 
-app.put("/api/content", requireAdmin, (req, res) => {
+app.put("/api/content", requireAdmin, async (req, res) => {
   const incoming = req.body?.pages;
   if (!Array.isArray(incoming)) {
     res.status(400).json({ error: "Missing pages" });
@@ -379,17 +384,17 @@ app.put("/api/content", requireAdmin, (req, res) => {
   }
 
   uiOverrides = next;
-  saveUiOverrides();
-  syncQuizCopyFromUiPages();
+  await saveUiOverrides();
+  await syncQuizCopyFromUiPages();
   res.json({ ok: true, pages: mergedContentPages() });
 });
 
-app.post("/api/sessions", createSessionLimiter, (req, res) => {
+app.post("/api/sessions", createSessionLimiter, async (req, res) => {
   const teamName = String(req.body?.teamName ?? "").trim().slice(0, 60) || "Your team";
   const code = makeCode();
   const session: Session = { code, teamName, createdAt: Date.now(), submissions: [] };
   sessions.set(code, session);
-  saveToDisk();
+  await saveSessionsToStore();
   res.status(201).json({ code, teamName });
 });
 
@@ -413,7 +418,7 @@ app.get("/api/sessions/:code", (req, res) => {
   });
 });
 
-app.post("/api/sessions/:code/submissions", submitLimiter, (req, res) => {
+app.post("/api/sessions/:code/submissions", submitLimiter, async (req, res) => {
   const session = getSession(req, res);
   if (!session) return;
 
@@ -437,7 +442,7 @@ app.post("/api/sessions/:code/submissions", submitLimiter, (req, res) => {
   }
 
   session.submissions.push({ id: randomUUID(), answers, submittedAt: Date.now() });
-  saveToDisk();
+  await saveSessionsToStore();
   res.status(201).json({ ok: true, participantCount: session.submissions.length });
 });
 
@@ -474,6 +479,45 @@ app.use((_req, res) => {
 });
 
 const PORT = Number(process.env.PORT ?? 8787);
-app.listen(PORT, () => {
-  console.log(`Beyond the Game server listening on http://localhost:${PORT}`);
+
+async function migrateLegacyFileStore() {
+  const legacyDir = process.env.DATA_DIR ?? join(__dirname, "..", "data");
+  const legacyFiles: Array<{ key: "quiz" | "ui-content" | "sessions"; file: string }> = [
+    { key: "quiz", file: "quiz.json" },
+    { key: "ui-content", file: "ui-content.json" },
+    { key: "sessions", file: "sessions.json" },
+  ];
+
+  for (const { key, file } of legacyFiles) {
+    if (await store.read(key)) continue;
+    const path = join(legacyDir, file);
+    if (!existsSync(path)) continue;
+    try {
+      const value = JSON.parse(readFileSync(path, "utf-8")) as unknown;
+      await store.write(key, value);
+      console.log(`Imported legacy ${key} from ${path}`);
+    } catch (err) {
+      console.warn(`Could not import legacy ${key}:`, err);
+    }
+  }
+}
+
+async function main() {
+  store = await createBlobStore();
+  await store.init();
+  await migrateLegacyFileStore();
+  await loadQuizFromStore();
+  uiOverrides = await loadUiOverrides();
+  await loadSessionsFromStore();
+  await migrateQuizCopyToUiIfNeeded();
+
+  app.listen(PORT, () => {
+    console.log(`Beyond the Game server listening on http://localhost:${PORT}`);
+    console.log(`Storage backend: ${store.backend()}`);
+  });
+}
+
+main().catch((err) => {
+  console.error("Server failed to start:", err);
+  process.exit(1);
 });
