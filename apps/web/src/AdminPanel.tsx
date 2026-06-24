@@ -10,6 +10,25 @@ import { clearAdminToken, getAdminToken } from "./adminAuth";
 type Tab = "content" | "questions";
 type Filter = "all" | QuizPerspective;
 
+type ContentNavGroup = "host" | "player" | "quiz";
+
+const CONTENT_NAV_GROUPS: { id: ContentNavGroup; label: string }[] = [
+  { id: "host", label: "Host screens" },
+  { id: "player", label: "Player screens" },
+  { id: "quiz", label: "Quiz UI" },
+];
+
+function contentNavGroup(pageKey: string): ContentNavGroup {
+  if (pageKey.startsWith("host")) return "host";
+  if (pageKey.startsWith("player")) return "player";
+  return "quiz";
+}
+
+function contentNavLabel(title: string): string {
+  const parts = title.split(" · ");
+  return parts.length > 1 ? parts.slice(1).join(" · ") : title;
+}
+
 function perspectiveLabel(perspective: QuizPerspective): string {
   return perspective === "team" ? "About your team" : "About you";
 }
@@ -48,7 +67,7 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
   const [tab, setTab] = useState<Tab>("content");
 
   return (
-    <div className="app admin-app">
+    <div className={`app admin-app${tab === "content" ? " admin-app-wide" : ""}`}>
       <header className="hero">
         <button className="link-back" onClick={onExit}>
           ← Back to host
@@ -86,26 +105,30 @@ function ContentEditor() {
   const pages = useContentStore((s) => s.pages);
   const setMerged = useContentStore((s) => s.setMerged);
 
-  // Sparse draft of only the fields the admin has actually edited, keyed by
-  // page → field. Untouched fields fall back to the live store value, so a
-  // background refresh never clobbers their edits or shows stale values.
+  const [activePageKey, setActivePageKey] = useState(pages[0]?.key ?? "");
   const [draft, setDraft] = useState<Record<string, Record<string, string>>>({});
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (pages.length > 0 && !pages.some((page) => page.key === activePageKey)) {
+      setActivePageKey(pages[0].key);
+    }
+  }, [pages, activePageKey]);
+
+  const activePage = pages.find((page) => page.key === activePageKey) ?? pages[0];
+
   const valueOf = (pageKey: string, fieldKey: string, fallback: string) =>
     draft[pageKey]?.[fieldKey] ?? fallback;
 
-  const dirty = useMemo(
-    () =>
-      pages.some((page) =>
-        page.fields.some(
-          (field) => draft[page.key]?.[field.key] !== undefined &&
-            draft[page.key][field.key] !== field.value,
-        ),
-      ),
-    [pages, draft],
-  );
+  const pageIsDirty = (page: ContentPage) =>
+    page.fields.some(
+      (field) =>
+        draft[page.key]?.[field.key] !== undefined &&
+        draft[page.key][field.key] !== field.value,
+    );
+
+  const dirty = useMemo(() => pages.some(pageIsDirty), [pages, draft]);
 
   function update(pageKey: string, fieldKey: string, value: string) {
     setStatus("idle");
@@ -130,7 +153,6 @@ function ContentEditor() {
       setStatus("saved");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not save";
-      // An expired/invalid token means we must re-authenticate from scratch.
       if (/unauthorized|401/i.test(message)) {
         clearAdminToken();
         window.location.reload();
@@ -141,58 +163,99 @@ function ContentEditor() {
     }
   }
 
-  return (
-    <>
-      <div className="content-pages">
-        {pages.map((page) => (
-          <section key={page.key} className="panel content-page">
-            <div className="content-page-head">
-              <h2>{page.title}</h2>
-              {page.description && <p className="muted small">{page.description}</p>}
-            </div>
-            <div className="content-fields">
-              {page.fields.map((field) => {
-                const id = `${page.key}-${field.key}`;
-                const value = valueOf(page.key, field.key, field.value);
-                return (
-                  <div key={field.key} className="content-field">
-                    <label className="field-label" htmlFor={id}>
-                      {field.label}
-                    </label>
-                    {field.multiline ? (
-                      <textarea
-                        id={id}
-                        className="text-input content-textarea"
-                        value={value}
-                        rows={3}
-                        maxLength={2000}
-                        onChange={(e) => update(page.key, field.key, e.target.value)}
-                      />
-                    ) : (
-                      <input
-                        id={id}
-                        className="text-input"
-                        value={value}
-                        maxLength={2000}
-                        onChange={(e) => update(page.key, field.key, e.target.value)}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        ))}
-      </div>
+  if (!activePage) {
+    return (
+      <section className="panel">
+        <h2>Loading page content…</h2>
+      </section>
+    );
+  }
 
-      <div className="content-save-bar">
-        {status === "saved" && <span className="content-save-msg saved">Saved</span>}
-        {status === "error" && <span className="content-save-msg error">{error}</span>}
-        <button className="primary" onClick={handleSave} disabled={status === "saving" || !dirty}>
-          {status === "saving" ? "Saving…" : "Save changes"}
-        </button>
+  return (
+    <div className="content-editor-layout">
+      <nav className="content-nav" aria-label="Page sections">
+        {CONTENT_NAV_GROUPS.map((group) => {
+          const groupPages = pages.filter((page) => contentNavGroup(page.key) === group.id);
+          if (groupPages.length === 0) return null;
+          return (
+            <div key={group.id} className="content-nav-group">
+              <p className="content-nav-heading">{group.label}</p>
+              <ul className="content-nav-list">
+                {groupPages.map((page) => (
+                  <li key={page.key}>
+                    <button
+                      type="button"
+                      className={
+                        page.key === activePage.key
+                          ? "content-nav-item active"
+                          : "content-nav-item"
+                      }
+                      onClick={() => setActivePageKey(page.key)}
+                    >
+                      <span className="content-nav-item-label">{contentNavLabel(page.title)}</span>
+                      {pageIsDirty(page) && (
+                        <span className="content-nav-dot" aria-label="Unsaved changes" />
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
+      </nav>
+
+      <div className="content-editor-main">
+        <section className="panel content-page">
+          <div className="content-page-head">
+            <h2>{activePage.title}</h2>
+            {activePage.description && <p className="muted small">{activePage.description}</p>}
+          </div>
+          <div className="content-fields">
+            {activePage.fields.map((field) => {
+              const id = `${activePage.key}-${field.key}`;
+              const value = valueOf(activePage.key, field.key, field.value);
+              return (
+                <div key={field.key} className="content-field">
+                  <label className="field-label" htmlFor={id}>
+                    {field.label}
+                  </label>
+                  {field.multiline ? (
+                    <textarea
+                      id={id}
+                      className="text-input content-textarea"
+                      value={value}
+                      rows={3}
+                      maxLength={2000}
+                      onChange={(e) => update(activePage.key, field.key, e.target.value)}
+                    />
+                  ) : (
+                    <input
+                      id={id}
+                      className="text-input"
+                      value={value}
+                      maxLength={2000}
+                      onChange={(e) => update(activePage.key, field.key, e.target.value)}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <div className="content-save-bar">
+          {status === "saved" && <span className="content-save-msg saved">Saved</span>}
+          {status === "error" && <span className="content-save-msg error">{error}</span>}
+          {dirty && status === "idle" && (
+            <span className="content-save-msg muted">Unsaved changes</span>
+          )}
+          <button className="primary" onClick={handleSave} disabled={status === "saving" || !dirty}>
+            {status === "saving" ? "Saving…" : "Save changes"}
+          </button>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
 
