@@ -8,7 +8,7 @@ import express from "express";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import { aggregateSubmissions, type QuizConfig, type QuizSubmission } from "@team-culture-sim/sim-engine";
-import { createBlobStore, type BlobStore } from "./store.js";
+import { createBlobStore, createFileBlobStore, type BlobStore } from "./store.js";
 
 // Bundled defaults — never written at runtime.
 const require = createRequire(import.meta.url);
@@ -462,16 +462,32 @@ if (existsSync(WEB_DIST)) {
     const wantsAdmin = req.path === "/admin" || req.path === "/admin.html";
     const adminFile = join(WEB_DIST, "admin.html");
     const file = wantsAdmin && existsSync(adminFile) ? adminFile : join(WEB_DIST, "index.html");
-    res.sendFile(file);
+    res.sendFile(file, (err) => {
+      if (err) {
+        console.error("Failed to send page:", file, err);
+        res.status(500).send("App files missing — run the build step.");
+      }
+    });
   });
   app.get("*", (req, res, next) => {
     if (req.path.startsWith("/api")) {
       next();
       return;
     }
-    res.sendFile(join(WEB_DIST, "index.html"));
+    res.sendFile(join(WEB_DIST, "index.html"), (err) => {
+      if (err) {
+        console.error("Failed to send index.html:", err);
+        res.status(500).send("App files missing — run the build step.");
+      }
+    });
   });
 }
+
+// ── Error handler ─────────────────────────────────────────────────────────────
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ error: "Internal server error" });
+});
 
 // ── 404 catch-all ─────────────────────────────────────────────────────────────
 app.use((_req, res) => {
@@ -503,16 +519,23 @@ async function migrateLegacyFileStore() {
 }
 
 async function main() {
-  store = await createBlobStore();
-  await store.init();
-  await migrateLegacyFileStore();
-  await loadQuizFromStore();
-  uiOverrides = await loadUiOverrides();
-  await loadSessionsFromStore();
-  await migrateQuizCopyToUiIfNeeded();
+  try {
+    store = await createBlobStore();
+    await migrateLegacyFileStore();
+    await loadQuizFromStore();
+    uiOverrides = await loadUiOverrides();
+    await loadSessionsFromStore();
+    await migrateQuizCopyToUiIfNeeded();
+  } catch (err) {
+    console.error("Storage init failed — starting with bundled defaults:", err);
+    store = await createFileBlobStore();
+    config = bundledQuiz;
+    validQuestionIds = new Set(config.questions.map((q) => q.id));
+    uiOverrides = {};
+  }
 
-  app.listen(PORT, () => {
-    console.log(`Beyond the Game server listening on http://localhost:${PORT}`);
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Beyond the Game server listening on http://0.0.0.0:${PORT}`);
     console.log(`Storage backend: ${store.backend()}`);
   });
 }

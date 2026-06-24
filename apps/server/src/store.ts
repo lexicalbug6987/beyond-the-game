@@ -14,7 +14,11 @@ export interface BlobStore {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function defaultDataDir(): string {
-  return process.env.DATA_DIR ?? join(__dirname, "..", "data");
+  if (process.env.DATA_DIR) return process.env.DATA_DIR;
+  if (process.env.REPLIT_DEPLOYMENT === "1" || process.env.REPL_ID) {
+    return "/tmp/beyond-the-game-data";
+  }
+  return join(__dirname, "..", "data");
 }
 
 const FILE_NAMES: Record<StoreKey, string> = {
@@ -31,7 +35,11 @@ class FileBlobStore implements BlobStore {
   }
 
   async init(): Promise<void> {
-    mkdirSync(this.dataDir, { recursive: true });
+    try {
+      mkdirSync(this.dataDir, { recursive: true });
+    } catch (err) {
+      console.warn(`Could not create data directory at ${this.dataDir}:`, err);
+    }
   }
 
   private pathFor(key: StoreKey): string {
@@ -51,20 +59,36 @@ class FileBlobStore implements BlobStore {
 
   async write(key: StoreKey, value: unknown): Promise<void> {
     const path = this.pathFor(key);
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, JSON.stringify(value, null, 2));
+    try {
+      mkdirSync(dirname(path), { recursive: true });
+      writeFileSync(path, JSON.stringify(value, null, 2));
+    } catch (err) {
+      console.warn(`Could not write ${path}:`, err);
+      throw err;
+    }
   }
+}
+
+export async function createFileBlobStore(dataDir = defaultDataDir()): Promise<BlobStore> {
+  console.log(`Using file storage at ${dataDir}`);
+  const fileStore = new FileBlobStore(dataDir);
+  await fileStore.init();
+  return fileStore;
 }
 
 export async function createBlobStore(): Promise<BlobStore> {
   const databaseUrl = process.env.DATABASE_URL?.trim();
   if (databaseUrl) {
-    console.log("Using PostgreSQL for admin content and sessions.");
-    const { createPgBlobStore } = await import("./store-pg.js");
-    return createPgBlobStore(databaseUrl);
+    try {
+      const { createPgBlobStore } = await import("./store-pg.js");
+      const pgStore = createPgBlobStore(databaseUrl);
+      await pgStore.init();
+      console.log("Using PostgreSQL for admin content and sessions.");
+      return pgStore;
+    } catch (err) {
+      console.warn("PostgreSQL unavailable — falling back to file storage:", err);
+    }
   }
 
-  const dataDir = defaultDataDir();
-  console.log(`Using file storage at ${dataDir} (set DATABASE_URL on Replit deploy for persistence).`);
-  return new FileBlobStore(dataDir);
+  return createFileBlobStore();
 }
