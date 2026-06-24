@@ -48,14 +48,9 @@ function QuizQuestionScreen({ onExit, team }: { onExit: () => void; team?: TeamC
               : c("quiz", "homeButton")
             : c("quiz", "backButton")}
         </button>
-        <div className="quiz-tags">
-          <span className={`perspective-pill ${question.perspective}`}>
-            {question.perspective === "team" ? c("quiz", "teamTag") : c("quiz", "selfTag")}
-          </span>
-          <span className="eyebrow inline">
-            {question.theme} · {index + 1} {c("quiz", "progressOf")} {total}
-          </span>
-        </div>
+        <p className="eyebrow">
+          {index + 1} {c("quiz", "progressOf")} {total}
+        </p>
         <h1 className="quiz-prompt">{question.prompt}</h1>
       </header>
 
@@ -75,9 +70,6 @@ function QuizQuestionScreen({ onExit, team }: { onExit: () => void; team?: TeamC
             </button>
           ))}
         </div>
-        <p className="muted small">
-          {question.perspective === "team" ? c("quiz", "teamHint") : c("quiz", "selfHint")}
-        </p>
       </section>
     </div>
   );
