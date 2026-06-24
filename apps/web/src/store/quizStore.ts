@@ -2,26 +2,35 @@ import { create } from "zustand";
 import { scoreQuiz, type QuizAnswers, type QuizConfig, type QuizResult } from "@team-culture-sim/sim-engine";
 import quizContent from "@team-culture-sim/content/quiz.json";
 
-const config = quizContent as QuizConfig;
+const defaultConfig = quizContent as QuizConfig;
 
 interface QuizStore {
   config: QuizConfig;
   index: number;
   answers: QuizAnswers;
   finished: boolean;
+  loadConfig: (config: QuizConfig) => void;
   answer: (questionId: string, optionId: string) => void;
   back: () => void;
   reset: () => void;
 }
 
 export const useQuizStore = create<QuizStore>((set, get) => ({
-  config,
+  config: defaultConfig,
   index: 0,
   answers: {},
   finished: false,
 
+  loadConfig: (config) => {
+    // Only swap in a freshly fetched config when the player hasn't started
+    // answering yet — replacing it mid-quiz would desync index/answers.
+    const { index, finished, answers } = get();
+    if (index > 0 || finished || Object.keys(answers).length > 0) return;
+    set({ config });
+  },
+
   answer: (questionId, optionId) => {
-    const { index, answers } = get();
+    const { index, answers, config } = get();
     const nextAnswers = { ...answers, [questionId]: optionId };
     const isLast = index >= config.questions.length - 1;
     set({
@@ -45,7 +54,8 @@ export const useQuizStore = create<QuizStore>((set, get) => ({
 
 export function useQuizResult(): QuizResult {
   const answers = useQuizStore((s) => s.answers);
+  const config = useQuizStore((s) => s.config);
   return scoreQuiz(config, answers);
 }
 
-export { config as quizConfig };
+export { defaultConfig as quizConfig };

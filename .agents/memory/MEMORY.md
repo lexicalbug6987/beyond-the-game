@@ -1,1 +1,1 @@
-- [Editable UI content](editable-ui-content.md) — admin-editable page copy via ui-content.json + useContent(); what's intentionally excluded and the restart gotcha.
+- [Git merge workflow](git-merge-workflow.md) — raw `git merge`/`merge-tree` are blocked in this env; resolve merges by editing files to the final combined state, platform handles git plumbing.

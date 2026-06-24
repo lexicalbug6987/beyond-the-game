@@ -1,4 +1,4 @@
-import type { TeamQuizResult } from "@team-culture-sim/sim-engine";
+import type { QuizConfig, TeamQuizResult } from "@team-culture-sim/sim-engine";
 
 export interface SessionInfo {
   code: string;
@@ -71,5 +71,17 @@ export function saveContent(
     method: "PUT",
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify({ pages }),
+  });
+}
+
+export function getQuiz(): Promise<QuizConfig> {
+  return request("/api/quiz");
+}
+
+export function updateQuiz(config: QuizConfig, token: string): Promise<QuizConfig> {
+  return request("/api/quiz", {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(config),
   });
 }

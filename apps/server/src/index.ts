@@ -12,8 +12,73 @@ import { aggregateSubmissions, type QuizConfig, type QuizSubmission } from "@tea
 // Load quiz content via fs so this works the same under tsx and plain node.
 const require = createRequire(import.meta.url);
 const quizPath = require.resolve("@team-culture-sim/content/quiz.json");
-const config = JSON.parse(readFileSync(quizPath, "utf-8")) as QuizConfig;
-const validQuestionIds = new Set(config.questions.map((q) => q.id));
+
+const TEAM_VALUES = [
+  "courage",
+  "excellence",
+  "respect",
+  "trust",
+  "care",
+  "accountability",
+] as const;
+
+let config = JSON.parse(readFileSync(quizPath, "utf-8")) as QuizConfig;
+let validQuestionIds = new Set(config.questions.map((q) => q.id));
+
+function reloadQuiz(next: QuizConfig) {
+  config = next;
+  validQuestionIds = new Set(config.questions.map((q) => q.id));
+  writeFileSync(quizPath, JSON.stringify(config, null, 2) + "\n");
+}
+
+function isTeamValue(value: string): value is (typeof TEAM_VALUES)[number] {
+  return (TEAM_VALUES as readonly string[]).includes(value);
+}
+
+function validateQuizConfig(raw: unknown): QuizConfig {
+  if (!raw || typeof raw !== "object") throw new Error("Invalid quiz payload");
+  const body = raw as QuizConfig;
+
+  if (!body.id || !body.title || !Array.isArray(body.values) || !Array.isArray(body.questions)) {
+    throw new Error("Quiz config is missing required fields");
+  }
+  if (!body.improvementTips || typeof body.improvementTips !== "object") {
+    throw new Error("Quiz config is missing improvement tips");
+  }
+
+  for (const value of TEAM_VALUES) {
+    if (typeof body.improvementTips[value] !== "string") {
+      throw new Error(`Missing improvement tip for ${value}`);
+    }
+  }
+
+  for (const question of body.questions) {
+    if (!question.id || !question.theme || !question.prompt) {
+      throw new Error(`Question ${question.id ?? "(unknown)"} is incomplete`);
+    }
+    if (question.perspective !== "self" && question.perspective !== "team") {
+      throw new Error(`Question ${question.id} has invalid perspective`);
+    }
+    if (!Array.isArray(question.options) || question.options.length === 0) {
+      throw new Error(`Question ${question.id} needs at least one option`);
+    }
+    for (const option of question.options) {
+      if (!option.id || !option.label) {
+        throw new Error(`Question ${question.id} has an incomplete option`);
+      }
+      if (!option.valueImpacts || typeof option.valueImpacts !== "object") {
+        throw new Error(`Question ${question.id} option ${option.id} needs value impacts`);
+      }
+      for (const [key, delta] of Object.entries(option.valueImpacts)) {
+        if (!isTeamValue(key) || typeof delta !== "number") {
+          throw new Error(`Question ${question.id} option ${option.id} has invalid impacts`);
+        }
+      }
+    }
+  }
+
+  return body;
+}
 
 // ── Editable UI content ────────────────────────────────────────────────────────
 interface ContentField {
@@ -223,6 +288,16 @@ app.post("/api/admin/auth", adminAuthLimiter, (req, res) => {
 // Expose the quiz content so the client always matches the server's scoring.
 app.get("/api/quiz", (_req, res) => {
   res.json(config);
+});
+
+app.put("/api/quiz", requireAdmin, (req, res) => {
+  try {
+    const next = validateQuizConfig(req.body);
+    reloadQuiz(next);
+    res.json(config);
+  } catch (err) {
+    res.status(400).json({ error: (err as Error).message });
+  }
 });
 
 // ── Editable page content ───────────────────────────────────────────────────────
