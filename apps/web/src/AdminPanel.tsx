@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { QuizConfig, QuizPerspective, QuizQuestion } from "@team-culture-sim/sim-engine";
 import { quizConfig as bundledQuizConfig, useQuizStore } from "./store/quizStore";
 import { useContentStore, notifyContentUpdated } from "./content";
 import { getQuiz, saveContent, updateQuiz, type ContentPage } from "./api";
-import { cloneQuizConfig, formatImpacts, parseImpacts } from "./quizAdminUtils";
+import { cloneQuizConfig, createBlankQuestion, formatImpacts, parseImpacts } from "./quizAdminUtils";
 import { withQuizCopy } from "./quizCopy";
 import { clearAdminToken, getAdminToken } from "./adminAuth";
 
@@ -42,6 +42,11 @@ function updateQuestion(
     ...config,
     questions: config.questions.map((q) => (q.id === questionId ? { ...q, ...patch } : q)),
   };
+}
+
+function addQuestion(config: QuizConfig, perspective: QuizPerspective): QuizConfig {
+  const question = createBlankQuestion(config.questions, perspective);
+  return { ...config, questions: [...config.questions, question] };
 }
 
 function updateOption(
@@ -268,6 +273,7 @@ function QuestionBank() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
+  const scrollToQuestionId = useRef<string | null>(null);
 
   useEffect(() => {
     getQuiz()
@@ -285,6 +291,13 @@ function QuestionBank() {
       })
       .finally(() => setLoading(false));
   }, [loadConfig]);
+
+  useEffect(() => {
+    const id = scrollToQuestionId.current;
+    if (!id) return;
+    scrollToQuestionId.current = null;
+    document.getElementById(`admin-question-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [draft?.questions.length]);
 
   const dirty = useMemo(() => {
     if (!draft || !saved) return false;
@@ -341,6 +354,19 @@ function QuestionBank() {
     setError("");
   }
 
+  function handleAddQuestion() {
+    const perspective: QuizPerspective = filter === "team" || filter === "self" ? filter : "self";
+    setDraft((current) => {
+      if (!current) return current;
+      const next = addQuestion(current, perspective);
+      const added = next.questions[next.questions.length - 1];
+      scrollToQuestionId.current = added.id;
+      return next;
+    });
+    setStatus("");
+    setError("");
+  }
+
   return (
     <>
       <section className="panel admin-save-bar">
@@ -376,13 +402,20 @@ function QuestionBank() {
             {label}
           </button>
         ))}
+        <button type="button" className="admin-add-question" onClick={handleAddQuestion}>
+          + Add question
+        </button>
       </div>
 
       <div className="admin-questions">
         {questions.map((question) => {
           const number = draft.questions.findIndex((q) => q.id === question.id) + 1;
           return (
-            <article key={question.id} className="panel admin-question admin-question-edit">
+            <article
+              key={question.id}
+              id={`admin-question-${question.id}`}
+              className="panel admin-question admin-question-edit"
+            >
               <div className="admin-question-head">
                 <span className="admin-qnum">Q{number}</span>
                 <span className={`perspective-pill ${question.perspective}`}>

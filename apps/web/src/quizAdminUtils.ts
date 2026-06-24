@@ -1,4 +1,4 @@
-import type { QuizConfig, TeamValue } from "@team-culture-sim/sim-engine";
+import type { QuizConfig, QuizPerspective, QuizQuestion, TeamValue } from "@team-culture-sim/sim-engine";
 
 const TEAM_VALUES: TeamValue[] = [
   "courage",
@@ -35,4 +35,25 @@ export function parseImpacts(raw: string): Partial<Record<TeamValue, number>> {
 
 export function cloneQuizConfig(config: QuizConfig): QuizConfig {
   return structuredClone(config);
+}
+
+export function createBlankQuestion(
+  existing: QuizQuestion[],
+  perspective: QuizPerspective = "self",
+): QuizQuestion {
+  let n = 1;
+  while (existing.some((q) => q.id === `q-new-${n}`)) n++;
+
+  return {
+    id: `q-new-${n}`,
+    theme: "New theme",
+    perspective,
+    prompt: "Enter your question here.",
+    options: [
+      { id: "a", label: "Option A", valueImpacts: { respect: 1 } },
+      { id: "b", label: "Option B", valueImpacts: { respect: 0 } },
+      { id: "c", label: "Option C", valueImpacts: { courage: 1 } },
+      { id: "d", label: "Option D", valueImpacts: { courage: 2, respect: 1 } },
+    ],
+  };
 }
