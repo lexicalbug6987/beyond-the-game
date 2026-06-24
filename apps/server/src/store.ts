@@ -78,7 +78,7 @@ function resolveDatabaseUrl(): string | undefined {
   );
 }
 
-export function isPersistentStorage(backend: BlobStore["backend"]): boolean {
+export function isPersistentStorage(backend: ReturnType<BlobStore["backend"]>): boolean {
   return backend === "postgres";
 }
 
