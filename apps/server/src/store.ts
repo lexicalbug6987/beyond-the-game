@@ -3,12 +3,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export type StoreKey = "quiz" | "ui-content" | "sessions";
+export type StorageBackend = "file" | "postgres";
 
 export interface BlobStore {
   init(): Promise<void>;
   read(key: StoreKey): Promise<unknown | null>;
   write(key: StoreKey, value: unknown): Promise<void>;
-  backend(): "file" | "postgres";
+  backend(): StorageBackend;
 }
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -30,7 +31,7 @@ const FILE_NAMES: Record<StoreKey, string> = {
 class FileBlobStore implements BlobStore {
   constructor(private readonly dataDir: string) {}
 
-  backend(): "file" {
+  backend(): StorageBackend {
     return "file";
   }
 
@@ -78,7 +79,7 @@ function resolveDatabaseUrl(): string | undefined {
   );
 }
 
-export function isPersistentStorage(backend: BlobStore["backend"]): boolean {
+export function isPersistentStorage(backend: StorageBackend): boolean {
   return backend === "postgres";
 }
 
