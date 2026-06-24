@@ -454,10 +454,9 @@ const WEB_DIST = join(__dirname, "..", "..", "web", "dist");
 if (existsSync(WEB_DIST)) {
   app.use(express.static(WEB_DIST));
   app.get(["/", "/admin", "/admin.html"], (req, res) => {
-    const file =
-      req.path === "/admin" || req.path === "/admin.html"
-        ? join(WEB_DIST, "admin.html")
-        : join(WEB_DIST, "index.html");
+    const wantsAdmin = req.path === "/admin" || req.path === "/admin.html";
+    const adminFile = join(WEB_DIST, "admin.html");
+    const file = wantsAdmin && existsSync(adminFile) ? adminFile : join(WEB_DIST, "index.html");
     res.sendFile(file);
   });
   app.get("*", (req, res, next) => {
