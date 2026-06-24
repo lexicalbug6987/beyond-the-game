@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import type { QuizConfig, QuizPerspective, QuizQuestion } from "@team-culture-sim/sim-engine";
-import { quizConfig as bundledQuizConfig } from "./store/quizStore";
+import { quizConfig as bundledQuizConfig, useQuizStore } from "./store/quizStore";
 import { useContentStore } from "./content";
 import { getQuiz, saveContent, updateQuiz, type ContentPage } from "./api";
 import { cloneQuizConfig, formatImpacts, parseImpacts } from "./quizAdminUtils";
+import { withQuizCopy } from "./quizCopy";
 import { clearAdminToken, getAdminToken } from "./adminAuth";
 
 type Tab = "content" | "questions";
@@ -195,6 +196,7 @@ function ContentEditor() {
 }
 
 function QuestionBank() {
+  const loadConfig = useQuizStore((s) => s.loadConfig);
   const [draft, setDraft] = useState<QuizConfig | null>(null);
   const [saved, setSaved] = useState<QuizConfig | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
@@ -206,19 +208,19 @@ function QuestionBank() {
   useEffect(() => {
     getQuiz()
       .then((config) => {
-        setDraft(cloneQuizConfig(config));
-        setSaved(cloneQuizConfig(config));
+        const merged = withQuizCopy(config);
+        setDraft(cloneQuizConfig(merged));
+        setSaved(cloneQuizConfig(merged));
+        loadConfig(merged);
       })
       .catch(() => {
         const fallback = cloneQuizConfig(bundledQuizConfig);
         setDraft(fallback);
         setSaved(fallback);
-        setError(
-          "Couldn't reach the API — showing bundled questions. Start the server to save edits.",
-        );
+        setError("Couldn't reach the API — edits won't save until you run npm run dev (web + server).");
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [loadConfig]);
 
   const dirty = useMemo(() => {
     if (!draft || !saved) return false;
@@ -249,10 +251,11 @@ function QuestionBank() {
     setStatus("");
     try {
       const next = await updateQuiz(draft, getAdminToken());
-      const savedCopy = cloneQuizConfig(next);
+      const savedCopy = withQuizCopy(cloneQuizConfig(next));
       setDraft(savedCopy);
       setSaved(savedCopy);
-      setStatus("Saved — players will see these questions in new sessions.");
+      loadConfig(savedCopy);
+      setStatus("Saved. Host and player screens will show these updates.");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not save";
       // An expired/invalid token means we must re-authenticate from scratch.

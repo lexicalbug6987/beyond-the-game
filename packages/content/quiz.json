@@ -1,6 +1,12 @@
 {
   "id": "culture-check",
   "title": "Beyond the Game",
+  "copy": {
+    "hostHeadline": "Surface, examine, and better understand how the everyday interactions of your team shape your culture.",
+    "hostLede": "Create a session, put the QR code on a screen, and everyone answers individually. All answers are anonymous. You'll get one individual score and a shared team score, including where you are now and where you want to go.",
+    "playerHeadline": "Let's check your team's culture",
+    "playerLede": "About {count} quick questions — some about how you'd respond, some about what usually happens on your team. It's completely anonymous, and it rolls up into one team result."
+  },
   "values": [
     { "id": "courage", "label": "Courage", "blurb": "Saying the hard thing, even when it's easier to stay quiet." },
     { "id": "excellence", "label": "Excellence", "blurb": "Holding the standard when no one's watching." },

@@ -225,10 +225,20 @@ export interface QuizQuestion {
 export interface QuizConfig {
   id: string;
   title: string;
+  /** Screen copy shown on the host and player flows. */
+  copy?: QuizCopy;
   values: ValueDef[];
   /** One actionable growth tip per value. */
   improvementTips: Record<TeamValue, string>;
   questions: QuizQuestion[];
+}
+
+export interface QuizCopy {
+  hostHeadline: string;
+  hostLede: string;
+  playerHeadline: string;
+  /** Use {count} for the number of questions. */
+  playerLede: string;
 }
 
 export interface QuizGrowthArea {

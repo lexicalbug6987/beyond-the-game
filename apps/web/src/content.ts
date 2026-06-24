@@ -83,3 +83,9 @@ export { defaults as defaultContent };
 
 // Pull the latest saved copy as soon as the app boots.
 useContentStore.getState().refresh();
+
+if (typeof window !== "undefined") {
+  window.addEventListener("focus", () => {
+    useContentStore.getState().refresh();
+  });
+}

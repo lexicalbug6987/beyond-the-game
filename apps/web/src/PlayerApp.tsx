@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import QuizApp from "./QuizApp";
 import { getQuiz, getSession } from "./api";
-import { useQuizStore } from "./store/quizStore";
 import { useContent } from "./content";
+import { useQuizStore } from "./store/quizStore";
+import { useQuizConfigLoader } from "./useQuizConfigLoader";
 
 type Phase = "loading" | "notfound" | "intro" | "quiz";
 
@@ -11,7 +12,15 @@ export default function PlayerApp({ code }: { code: string }) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [teamName, setTeamName] = useState("");
   const resetQuiz = useQuizStore((s) => s.reset);
-  const loadConfig = useQuizStore((s) => s.loadConfig);
+  const [quizSynced, setQuizSynced] = useState(false);
+
+  useQuizConfigLoader();
+
+  useEffect(() => {
+    getQuiz()
+      .then(() => setQuizSynced(true))
+      .catch(() => setQuizSynced(true));
+  }, []);
 
   useEffect(() => {
     getSession(code)
@@ -22,13 +31,7 @@ export default function PlayerApp({ code }: { code: string }) {
       .catch(() => setPhase("notfound"));
   }, [code]);
 
-  useEffect(() => {
-    getQuiz()
-      .then(loadConfig)
-      .catch(() => {});
-  }, [loadConfig]);
-
-  if (phase === "loading") {
+  if (phase === "loading" || (phase === "intro" && !quizSynced)) {
     return (
       <div className="app narrow">
         <header className="hero">

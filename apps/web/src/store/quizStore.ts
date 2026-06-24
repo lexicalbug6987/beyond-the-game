@@ -1,8 +1,9 @@
 import { create } from "zustand";
 import { scoreQuiz, type QuizAnswers, type QuizConfig, type QuizResult } from "@team-culture-sim/sim-engine";
 import quizContent from "@team-culture-sim/content/quiz.json";
+import { withQuizCopy } from "../quizCopy";
 
-const defaultConfig = quizContent as QuizConfig;
+const defaultConfig = withQuizCopy(quizContent as QuizConfig);
 
 interface QuizStore {
   config: QuizConfig;
@@ -26,7 +27,7 @@ export const useQuizStore = create<QuizStore>((set, get) => ({
     // answering yet — replacing it mid-quiz would desync index/answers.
     const { index, finished, answers } = get();
     if (index > 0 || finished || Object.keys(answers).length > 0) return;
-    set({ config });
+    set({ config: withQuizCopy(config) });
   },
 
   answer: (questionId, optionId) => {

@@ -52,6 +52,17 @@ function validateQuizConfig(raw: unknown): QuizConfig {
     }
   }
 
+  if (body.copy !== undefined) {
+    if (!body.copy || typeof body.copy !== "object") {
+      throw new Error("Invalid copy section");
+    }
+    for (const key of ["hostHeadline", "hostLede", "playerHeadline", "playerLede"] as const) {
+      if (typeof body.copy[key] !== "string" || !body.copy[key].trim()) {
+        throw new Error(`Copy field "${key}" is required`);
+      }
+    }
+  }
+
   for (const question of body.questions) {
     if (!question.id || !question.theme || !question.prompt) {
       throw new Error(`Question ${question.id ?? "(unknown)"} is incomplete`);
