@@ -69,6 +69,19 @@ class FileBlobStore implements BlobStore {
   }
 }
 
+function resolveDatabaseUrl(): string | undefined {
+  return (
+    process.env.DATABASE_URL?.trim() ||
+    process.env.POSTGRES_URL?.trim() ||
+    process.env.REPLIT_DB_URL?.trim() ||
+    undefined
+  );
+}
+
+export function isPersistentStorage(backend: BlobStore["backend"]): boolean {
+  return backend === "postgres";
+}
+
 export async function createFileBlobStore(dataDir = defaultDataDir()): Promise<BlobStore> {
   console.log(`Using file storage at ${dataDir}`);
   const fileStore = new FileBlobStore(dataDir);
@@ -77,7 +90,7 @@ export async function createFileBlobStore(dataDir = defaultDataDir()): Promise<B
 }
 
 export async function createBlobStore(): Promise<BlobStore> {
-  const databaseUrl = process.env.DATABASE_URL?.trim();
+  const databaseUrl = resolveDatabaseUrl();
   if (databaseUrl) {
     try {
       const { createPgBlobStore } = await import("./store-pg.js");

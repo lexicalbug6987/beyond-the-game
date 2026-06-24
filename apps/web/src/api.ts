@@ -10,6 +10,7 @@ export type TeamResults = TeamQuizResult & { teamName: string; code: string };
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
+    cache: "no-store",
     ...options,
     headers: { "Content-Type": "application/json", ...(options?.headers ?? {}) },
   });
@@ -66,7 +67,7 @@ export function getContent(): Promise<{ pages: ContentPage[] }> {
 export function saveContent(
   pages: ContentPage[],
   token: string,
-): Promise<{ ok: true; pages: ContentPage[] }> {
+): Promise<{ ok: true; pages: ContentPage[]; storage?: string; persistent?: boolean }> {
   return request("/api/content", {
     method: "PUT",
     headers: { Authorization: `Bearer ${token}` },
@@ -84,4 +85,15 @@ export function updateQuiz(config: QuizConfig, token: string): Promise<QuizConfi
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify(config),
   });
+}
+
+export interface HealthInfo {
+  ok: boolean;
+  sessions: number;
+  storage: "file" | "postgres" | "starting";
+  persistent: boolean;
+}
+
+export function getHealth(): Promise<HealthInfo> {
+  return request("/api/health");
 }

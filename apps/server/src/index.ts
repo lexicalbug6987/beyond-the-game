@@ -8,7 +8,7 @@ import express from "express";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import { aggregateSubmissions, type QuizConfig, type QuizSubmission } from "@team-culture-sim/sim-engine";
-import { createBlobStore, createFileBlobStore, type BlobStore } from "./store.js";
+import { createBlobStore, createFileBlobStore, isPersistentStorage, type BlobStore } from "./store.js";
 
 // Bundled defaults — never written at runtime.
 const require = createRequire(import.meta.url);
@@ -136,10 +136,10 @@ async function loadUiOverrides(): Promise<Record<string, Record<string, string>>
 }
 
 async function saveUiOverrides() {
-  try {
-    await store.write("ui-content", uiOverrides);
-  } catch (err) {
-    console.warn("Could not save UI content:", err);
+  await store.write("ui-content", uiOverrides);
+  const saved = await store.read("ui-content");
+  if (!saved) {
+    throw new Error("Storage write failed — page content was not saved.");
   }
 }
 
@@ -289,11 +289,21 @@ const submitLimiter = rateLimit({
 });
 
 app.use("/api", globalLimiter);
+app.use("/api", (_req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, sessions: sessions.size, storage: store?.backend() ?? "starting" });
+  const backend = store?.backend() ?? "file";
+  res.json({
+    ok: true,
+    sessions: sessions.size,
+    storage: backend,
+    persistent: store ? isPersistentStorage(backend) : false,
+  });
 });
 
 // ── Admin tokens ───────────────────────────────────────────────────────────────
@@ -370,7 +380,6 @@ app.put("/api/content", requireAdmin, async (req, res) => {
     return;
   }
 
-  // Keep only known page/field keys with string values; ignore anything else.
   const next: Record<string, Record<string, string>> = {};
   for (const page of incoming) {
     const pageKey = String(page?.key ?? "");
@@ -383,10 +392,25 @@ app.put("/api/content", requireAdmin, async (req, res) => {
     }
   }
 
+  const previous = structuredClone(uiOverrides);
   uiOverrides = next;
-  await saveUiOverrides();
-  await syncQuizCopyFromUiPages();
-  res.json({ ok: true, pages: mergedContentPages() });
+  try {
+    await saveUiOverrides();
+    try {
+      await syncQuizCopyFromUiPages();
+    } catch (err) {
+      console.warn("Could not sync quiz copy after content save:", err);
+    }
+    res.json({
+      ok: true,
+      pages: mergedContentPages(),
+      storage: store.backend(),
+      persistent: isPersistentStorage(store.backend()),
+    });
+  } catch (err) {
+    uiOverrides = previous;
+    res.status(503).json({ error: (err as Error).message || "Could not save page content" });
+  }
 });
 
 app.post("/api/sessions", createSessionLimiter, async (req, res) => {

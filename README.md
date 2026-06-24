@@ -46,13 +46,15 @@ Submissions are stored server-side in `apps/server/data/` locally, or in Postgre
 
 ### Replit / production persistence
 
-**Deployed apps on Replit reset their filesystem on every redeploy.** Admin edits (questions, page copy) will not survive unless you connect a database:
+**Deployed apps on Replit reset their filesystem on every redeploy.** Admin edits will not survive unless PostgreSQL is connected:
 
-1. In your Replit project, open **Database** (or **Storage & databases**) and create a **PostgreSQL** database.
-2. Replit injects `DATABASE_URL` into your deployment secrets automatically.
-3. Redeploy. The server stores quiz content, page copy, and sessions in Postgres and they persist across redeploys.
+1. In Replit, open **Database** (or **Storage & databases**) and create a **PostgreSQL** database.
+2. Open your **Deployment** settings and ensure the database is **linked** to the deployment (so `DATABASE_URL` is injected).
+3. Redeploy the app.
+4. Open admin and confirm the yellow storage warning is gone.
+5. Visit `/api/health` — it should return `"storage": "postgres"` and `"persistent": true`.
 
-Check `/api/health` — it returns `"storage": "postgres"` when connected, or `"file"` when using local files only.
+**Editing the host landing page:** use admin → **Page content** → **Host · Start screen** → **Save changes** → go back to the host page.
 
 ## Scripts
 

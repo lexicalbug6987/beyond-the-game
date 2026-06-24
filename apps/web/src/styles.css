@@ -1237,6 +1237,22 @@ h1 {
   font-size: 0.875rem;
 }
 
+.admin-storage-warning {
+  margin-top: 1rem;
+  border-color: #6b4a1a;
+  background: #2a2010;
+}
+
+.admin-storage-warning strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #fbbf24;
+}
+
+.admin-storage-warning code {
+  font-size: 0.82em;
+}
+
 .admin-save-bar {
   display: flex;
   justify-content: space-between;

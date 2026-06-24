@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { QuizConfig, QuizPerspective, QuizQuestion } from "@team-culture-sim/sim-engine";
 import { quizConfig as bundledQuizConfig, useQuizStore } from "./store/quizStore";
 import { useContentStore, notifyContentUpdated } from "./content";
-import { getQuiz, saveContent, updateQuiz, type ContentPage } from "./api";
+import { getQuiz, getHealth, saveContent, updateQuiz, type ContentPage, type HealthInfo } from "./api";
 import { cloneQuizConfig, createBlankQuestion, formatImpacts, parseImpacts } from "./quizAdminUtils";
 import { withQuizCopy } from "./quizCopy";
 import { clearAdminToken, getAdminToken } from "./adminAuth";
@@ -102,7 +102,32 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
       </div>
 
       {tab === "content" ? <ContentEditor /> : <QuestionBank />}
+      <StorageStatus />
     </div>
+  );
+}
+
+function StorageStatus() {
+  const [health, setHealth] = useState<HealthInfo | null>(null);
+
+  useEffect(() => {
+    getHealth()
+      .then(setHealth)
+      .catch(() => setHealth(null));
+  }, []);
+
+  if (!health || health.persistent) return null;
+
+  return (
+    <section className="panel admin-storage-warning">
+      <strong>Changes won&apos;t survive redeploys</strong>
+      <p className="muted small">
+        Storage is temporary ({health.storage}). In Replit, open{" "}
+        <strong>Database</strong>, create PostgreSQL, and redeploy so{" "}
+        <code>DATABASE_URL</code> is set. Then check{" "}
+        <code>/api/health</code> shows <code>&quot;storage&quot;: &quot;postgres&quot;</code>.
+      </p>
+    </section>
   );
 }
 
@@ -114,6 +139,7 @@ function ContentEditor() {
   const [draft, setDraft] = useState<Record<string, Record<string, string>>>({});
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     if (pages.length > 0 && !pages.some((page) => page.key === activePageKey)) {
@@ -143,6 +169,7 @@ function ContentEditor() {
   async function handleSave() {
     setStatus("saving");
     setError("");
+    setNotice("");
     const payload: ContentPage[] = pages.map((page) => ({
       ...page,
       fields: page.fields.map((field) => ({
@@ -156,6 +183,11 @@ function ContentEditor() {
       setDraft({});
       notifyContentUpdated();
       setStatus("saved");
+      setNotice(
+        res.persistent
+          ? ""
+          : "Saved for now — connect a Replit database or changes will be lost on redeploy.",
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not save";
       if (/unauthorized|401/i.test(message)) {
@@ -252,6 +284,7 @@ function ContentEditor() {
         <div className="content-save-bar">
           {status === "saved" && <span className="content-save-msg saved">Saved</span>}
           {status === "error" && <span className="content-save-msg error">{error}</span>}
+          {notice && <span className="content-save-msg muted">{notice}</span>}
           {dirty && status === "idle" && (
             <span className="content-save-msg muted">Unsaved changes</span>
           )}
