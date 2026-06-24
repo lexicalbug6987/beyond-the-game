@@ -159,6 +159,47 @@ function mergedContentPages(): ContentPage[] {
   }));
 }
 
+function contentField(pages: ContentPage[], pageKey: string, fieldKey: string): string | undefined {
+  const page = pages.find((p) => p.key === pageKey);
+  return page?.fields.find((f) => f.key === fieldKey)?.value;
+}
+
+/** Keep quiz.json copy in sync with the host/player page content fields. */
+function syncQuizCopyFromUiPages() {
+  const pages = mergedContentPages();
+  const hostHeadline = contentField(pages, "hostSetup", "title");
+  const hostLede = contentField(pages, "hostSetup", "lede");
+  const playerHeadline = contentField(pages, "playerIntro", "title");
+  const playerLede = contentField(pages, "playerIntro", "lede");
+  if (!hostHeadline || !hostLede || !playerHeadline || !playerLede) return;
+
+  config = {
+    ...config,
+    copy: { hostHeadline, hostLede, playerHeadline, playerLede },
+  };
+  writeFileSync(quizPath, JSON.stringify(config, null, 2) + "\n");
+}
+
+/** Keep saved page content in sync with quiz.json copy fields. */
+function syncUiOverridesFromQuizCopy(copy: NonNullable<QuizConfig["copy"]>) {
+  (uiOverrides.hostSetup ??= {}).title = copy.hostHeadline;
+  uiOverrides.hostSetup.lede = copy.hostLede;
+  (uiOverrides.playerIntro ??= {}).title = copy.playerHeadline;
+  uiOverrides.playerIntro.lede = copy.playerLede;
+  saveUiOverrides();
+}
+
+/** On boot, migrate legacy quiz copy into page content if nothing was saved yet. */
+function migrateQuizCopyToUiIfNeeded() {
+  if (!config.copy) return;
+  const needsHostTitle = !uiOverrides.hostSetup?.title;
+  const needsHostLede = !uiOverrides.hostSetup?.lede;
+  if (!needsHostTitle && !needsHostLede) return;
+  syncUiOverridesFromQuizCopy(config.copy);
+}
+
+migrateQuizCopyToUiIfNeeded();
+
 function loadFromDisk() {
   if (!existsSync(DATA_FILE)) return;
   try {
@@ -305,6 +346,7 @@ app.put("/api/quiz", requireAdmin, (req, res) => {
   try {
     const next = validateQuizConfig(req.body);
     reloadQuiz(next);
+    if (next.copy) syncUiOverridesFromQuizCopy(next.copy);
     res.json(config);
   } catch (err) {
     res.status(400).json({ error: (err as Error).message });
@@ -338,6 +380,7 @@ app.put("/api/content", requireAdmin, (req, res) => {
 
   uiOverrides = next;
   saveUiOverrides();
+  syncQuizCopyFromUiPages();
   res.json({ ok: true, pages: mergedContentPages() });
 });
 
@@ -404,6 +447,27 @@ app.get("/api/sessions/:code/results", (req, res) => {
   const result = aggregateSubmissions(config, session.submissions);
   res.json({ teamName: session.teamName, code: session.code, ...result });
 });
+
+// ── Static web app (production / Replit deployment) ───────────────────────────
+const WEB_DIST = join(__dirname, "..", "..", "web", "dist");
+
+if (existsSync(WEB_DIST)) {
+  app.use(express.static(WEB_DIST));
+  app.get(["/", "/admin", "/admin.html"], (req, res) => {
+    const file =
+      req.path === "/admin" || req.path === "/admin.html"
+        ? join(WEB_DIST, "admin.html")
+        : join(WEB_DIST, "index.html");
+    res.sendFile(file);
+  });
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api")) {
+      next();
+      return;
+    }
+    res.sendFile(join(WEB_DIST, "index.html"));
+  });
+}
 
 // ── 404 catch-all ─────────────────────────────────────────────────────────────
 app.use((_req, res) => {

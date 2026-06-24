@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { createSession, getResults, getSession, type TeamResults } from "./api";
 import { TeamResultsView } from "./TeamResults";
 import { useContent } from "./content";
+import { useContentLoader } from "./useContentLoader";
 import { useQuizConfigLoader } from "./useQuizConfigLoader";
 
 type Phase = "setup" | "lobby" | "results";
@@ -15,6 +16,7 @@ export default function BeyondTheGameHost() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
 
+  useContentLoader();
   useQuizConfigLoader();
 
   const joinUrl = code ? `${window.location.origin}/?s=${code}` : "";

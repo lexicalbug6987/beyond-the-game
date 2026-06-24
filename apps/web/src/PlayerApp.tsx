@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import QuizApp from "./QuizApp";
 import { getQuiz, getSession } from "./api";
 import { useContent } from "./content";
+import { useContentLoader } from "./useContentLoader";
 import { useQuizStore } from "./store/quizStore";
 import { useQuizConfigLoader } from "./useQuizConfigLoader";
 
@@ -14,6 +15,7 @@ export default function PlayerApp({ code }: { code: string }) {
   const resetQuiz = useQuizStore((s) => s.reset);
   const [quizSynced, setQuizSynced] = useState(false);
 
+  useContentLoader();
   useQuizConfigLoader();
 
   useEffect(() => {

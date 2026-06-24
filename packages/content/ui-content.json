@@ -6,8 +6,8 @@
       "description": "The first screen the organiser sees when creating a session.",
       "fields": [
         { "key": "eyebrow", "label": "Eyebrow (small label above the heading)", "value": "Beyond the Game" },
-        { "key": "title", "label": "Heading", "value": "How does your team actually show up?", "multiline": true },
-        { "key": "lede", "label": "Intro paragraph", "value": "Create a session, put the QR code on a screen, and everyone answers anonymously on their own phone — how they'd respond and what usually happens on the team. You'll get one shared read on your culture, including where you agree and where to grow.", "multiline": true },
+        { "key": "title", "label": "Heading", "value": "Surface, examine, and better understand how the everyday interactions of your team shape your culture.", "multiline": true },
+        { "key": "lede", "label": "Intro paragraph", "value": "Create a session, put the QR code on a screen, and everyone answers individually. All answers are anonymous. You'll get one individual score and a shared team score, including where you are now and where you want to go.", "multiline": true },
         { "key": "teamNameLabel", "label": "Team name field label", "value": "Team name" },
         { "key": "teamNamePlaceholder", "label": "Team name placeholder", "value": "e.g. Varsity Volleyball" },
         { "key": "createButton", "label": "Create button", "value": "Create session" },

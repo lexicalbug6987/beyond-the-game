@@ -44,5 +44,5 @@ externalPort = 3000
 
 [deployment]
 deploymentTarget = "vm"
-run = ["bash", "-c", "node apps/server/dist/index.js & npx vite preview --port 5000 --host 0.0.0.0 apps/web"]
+run = ["bash", "-c", "PORT=5000 node apps/server/dist/index.js"]
 build = ["bash", "-c", "npm run build -w @team-culture-sim/sim-engine && npm run build -w @team-culture-sim/server && npm run build -w @team-culture-sim/web"]

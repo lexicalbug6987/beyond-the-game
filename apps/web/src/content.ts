@@ -81,11 +81,18 @@ export function useContent(): (page: string, field: string) => string {
 
 export { defaults as defaultContent };
 
-// Pull the latest saved copy as soon as the app boots.
-useContentStore.getState().refresh();
+/** Tell other tabs (and this one) to reload page content from the API. */
+export function notifyContentUpdated() {
+  useContentStore.getState().refresh();
+  if (typeof window === "undefined") return;
+  try {
+    new BroadcastChannel("btg-content").postMessage("updated");
+  } catch {
+    // BroadcastChannel not available in this environment.
+  }
+}
 
+// Pull the latest saved copy as soon as the app boots.
 if (typeof window !== "undefined") {
-  window.addEventListener("focus", () => {
-    useContentStore.getState().refresh();
-  });
+  useContentStore.getState().refresh();
 }

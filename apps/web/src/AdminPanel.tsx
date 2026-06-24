@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { QuizConfig, QuizPerspective, QuizQuestion } from "@team-culture-sim/sim-engine";
 import { quizConfig as bundledQuizConfig, useQuizStore } from "./store/quizStore";
-import { useContentStore } from "./content";
+import { useContentStore, notifyContentUpdated } from "./content";
 import { getQuiz, saveContent, updateQuiz, type ContentPage } from "./api";
 import { cloneQuizConfig, formatImpacts, parseImpacts } from "./quizAdminUtils";
 import { withQuizCopy } from "./quizCopy";
@@ -126,6 +126,7 @@ function ContentEditor() {
       const res = await saveContent(payload, getAdminToken());
       setMerged(res.pages);
       setDraft({});
+      notifyContentUpdated();
       setStatus("saved");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not save";
@@ -255,7 +256,7 @@ function QuestionBank() {
       setDraft(savedCopy);
       setSaved(savedCopy);
       loadConfig(savedCopy);
-      setStatus("Saved. Host and player screens will show these updates.");
+      setStatus("Saved. Host and player screens will show these updates when you go back.");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not save";
       // An expired/invalid token means we must re-authenticate from scratch.
