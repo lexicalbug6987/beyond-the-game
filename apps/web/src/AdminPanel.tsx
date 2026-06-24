@@ -49,6 +49,13 @@ function addQuestion(config: QuizConfig, perspective: QuizPerspective): QuizConf
   return { ...config, questions: [...config.questions, question] };
 }
 
+function deleteQuestion(config: QuizConfig, questionId: string): QuizConfig {
+  return {
+    ...config,
+    questions: config.questions.filter((q) => q.id !== questionId),
+  };
+}
+
 function updateOption(
   config: QuizConfig,
   questionId: string,
@@ -400,6 +407,19 @@ function QuestionBank() {
     setError("");
   }
 
+  function handleDeleteQuestion(questionId: string, prompt: string) {
+    if (!draft || draft.questions.length <= 1) {
+      setError("You need at least one question in the bank.");
+      return;
+    }
+    const preview = prompt.length > 80 ? `${prompt.slice(0, 80)}…` : prompt;
+    if (!window.confirm(`Delete this question?\n\n“${preview}”`)) return;
+
+    setDraft((current) => (current ? deleteQuestion(current, questionId) : current));
+    setStatus("");
+    setError("");
+  }
+
   return (
     <>
       <section className="panel admin-save-bar">
@@ -455,6 +475,15 @@ function QuestionBank() {
                   {perspectiveLabel(question.perspective)}
                 </span>
                 <span className="admin-id">{question.id}</span>
+                <button
+                  type="button"
+                  className="admin-delete-question"
+                  onClick={() => handleDeleteQuestion(question.id, question.prompt)}
+                  disabled={draft.questions.length <= 1}
+                  title={draft.questions.length <= 1 ? "At least one question is required" : "Delete question"}
+                >
+                  Delete
+                </button>
               </div>
 
               <div className="admin-field-grid">

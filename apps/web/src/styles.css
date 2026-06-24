@@ -1114,6 +1114,28 @@ h1 {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+.admin-delete-question {
+  margin-left: 0.5rem;
+  border: 1px solid #5a3030;
+  background: transparent;
+  color: #e6a07a;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.admin-delete-question:hover:not(:disabled) {
+  border-color: #8a4040;
+  background: #3a1f1f;
+  color: #fecaca;
+}
+
+.admin-delete-question:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .admin-prompt {
   margin: 0 0 1rem;
   font-size: 1.15rem;
