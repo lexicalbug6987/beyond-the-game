@@ -902,26 +902,32 @@ h1 {
 
 .cmp-delta {
   flex-shrink: 0;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
   border-radius: 999px;
-  padding: 0.1rem 0.5rem;
+  padding: 0.34rem 0.8rem;
   white-space: nowrap;
+  border: 1.5px solid transparent;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 .cmp-delta.above {
-  color: #34d399;
-  background: #1a3d30;
+  color: #6ee7b7;
+  background: #16402f;
+  border-color: #34d399;
 }
 
 .cmp-delta.below {
-  color: #fbbf24;
-  background: #3d3010;
+  color: #fcd34d;
+  background: #3d2f0c;
+  border-color: #f59e0b;
 }
 
 .cmp-delta.even {
-  color: #cdd1a2;
-  background: #1d3a37;
+  color: #e2e6bd;
+  background: #173734;
+  border-color: #cdd1a2;
 }
 
 /* Admin question bank */
