@@ -186,7 +186,7 @@ export function aggregateSubmissions(
     growthAreas,
     divided,
     overallScore,
-    headline: buildTeamHeadline(strengths, growthAreas, divided),
+    headline: buildTeamHeadline(tested, growthAreas),
   };
 }
 
@@ -201,19 +201,23 @@ function agreementFor(scores: number[]): number {
 }
 
 function buildTeamHeadline(
-  strengths: ValueLevel[],
+  tested: TeamValueLevel[],
   growthAreas: { label: string }[],
-  divided: { label: string }[],
 ): string {
-  const strong = strengths.map((s) => s.label);
-  const lead = strong.length
-    ? `As a team, you run on ${joinLabels(strong)}.`
-    : "No single value clearly defines this team yet.";
-  if (divided.length) {
-    return `${lead} You're most split on ${joinLabels(divided.map((d) => d.label))} — worth a conversation.`;
+  if (tested.length === 0) {
+    return "No single value clearly defines this team yet.";
   }
-  const tail = growthAreas.length
-    ? ` The clearest room to grow together is ${joinLabels(growthAreas.map((g) => g.label))}.`
-    : " It's remarkably balanced across the board.";
+  const byScore = [...tested].sort((a, b) => b.score - a.score);
+  const top = byScore.slice(0, 3).map((l) => l.label);
+  const lead = `As a team, you run on ${joinLabels(top)}.`;
+  const realGrowth = growthAreas.map((g) => g.label);
+  let tail: string;
+  if (realGrowth.length) {
+    tail = ` The clearest room to grow together is ${joinLabels(realGrowth)}.`;
+  } else if (byScore.length > 3) {
+    tail = ` The clearest room to grow together is ${joinLabels([byScore[byScore.length - 1].label])}.`;
+  } else {
+    tail = " It's remarkably balanced across the board.";
+  }
   return lead + tail;
 }
