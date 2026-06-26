@@ -835,6 +835,95 @@ h1 {
   background: #3d3010;
 }
 
+/* Player results: you-vs-team comparison */
+.cmp-legend {
+  display: flex;
+  gap: 1.25rem;
+  margin: 0.35rem 0 1.1rem;
+  font-size: 0.78rem;
+  color: #9a9387;
+}
+
+.cmp-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.cmp-legend-bar {
+  width: 22px;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #246c64, #cdd1a2);
+}
+
+.cmp-legend-line {
+  width: 2px;
+  height: 14px;
+  border-radius: 2px;
+  background: #e8dfd0;
+}
+
+.cmp-track {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  background: #3a3732;
+}
+
+.cmp-track .level-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+}
+
+.cmp-marker {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  background: #e8dfd0;
+  border-radius: 2px;
+  box-shadow: 0 0 0 2px #2c2624;
+  transition: left 0.6s ease;
+  animation: cmpMarkerIn 0.5s ease;
+}
+
+@keyframes cmpMarkerIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.cmp-delta {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  white-space: nowrap;
+}
+
+.cmp-delta.above {
+  color: #34d399;
+  background: #1a3d30;
+}
+
+.cmp-delta.below {
+  color: #fbbf24;
+  background: #3d3010;
+}
+
+.cmp-delta.even {
+  color: #cdd1a2;
+  background: #1d3a37;
+}
+
 /* Admin question bank */
 .admin-app {
   max-width: 820px;

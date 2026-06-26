@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { TIER_LABEL, type QuizGrowthArea, type ValueLevel } from "@team-culture-sim/sim-engine";
+import {
+  TIER_LABEL,
+  type QuizGrowthArea,
+  type QuizResult,
+  type ValueLevel,
+} from "@team-culture-sim/sim-engine";
 import { useQuizResult, useQuizStore } from "./store/quizStore";
-import { submitAnswers } from "./api";
+import { getResults, submitAnswers, type TeamResults } from "./api";
 import { useContent } from "./content";
 
 interface TeamContext {
@@ -118,52 +123,155 @@ function TeamSubmit({ team, onExit }: { team: TeamContext; onExit: () => void })
     );
   }
 
-  const topStrength = result.strengths[0]?.label;
-  const topGrowth = result.growthAreas[0]?.label;
+  if (status === "submitting") {
+    return (
+      <div className="app narrow">
+        <header className="hero">
+          <p className="eyebrow">{team.teamName}</p>
+          <h1>{c("playerSubmit", "sendingTitle")}</h1>
+          <p className="lede">
+            {c("playerSubmit", "anonymousPrefix")} {team.teamName}
+            {c("playerSubmit", "anonymousSuffix")}.
+          </p>
+        </header>
+      </div>
+    );
+  }
+
+  return <TeamMemberResults team={team} result={result} count={count} onExit={onExit} />;
+}
+
+function TeamMemberResults({
+  team,
+  result,
+  count,
+  onExit,
+}: {
+  team: TeamContext;
+  result: QuizResult;
+  count: number;
+  onExit: () => void;
+}) {
+  const c = useContent();
+  const [teamScores, setTeamScores] = useState<Map<string, number> | null>(null);
+  const [teamCount, setTeamCount] = useState(count);
+
+  // Pull the team's pooled scores and keep them fresh as more people finish, so
+  // each participant first sees their own bars, then the team marker appears.
+  useEffect(() => {
+    let active = true;
+    const tick = () => {
+      getResults(team.code)
+        .then((r: TeamResults) => {
+          if (!active) return;
+          const map = new Map<string, number>();
+          for (const lvl of r.levels) map.set(lvl.value, lvl.score);
+          setTeamScores(map);
+          setTeamCount(r.participantCount);
+        })
+        .catch(() => {});
+    };
+    tick();
+    const id = setInterval(tick, 5000);
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
+  }, [team.code]);
+
+  const ordered = [...result.levels].sort((a, b) => {
+    if (a.tier === "untested" && b.tier !== "untested") return 1;
+    if (b.tier === "untested" && a.tier !== "untested") return -1;
+    return b.score - a.score;
+  });
 
   return (
     <div className="app narrow">
       <header className="hero">
         <p className="eyebrow">{team.teamName}</p>
-        <h1>{status === "submitting" ? c("playerSubmit", "sendingTitle") : c("playerSubmit", "doneTitle")}</h1>
+        <h1>{c("playerSubmit", "doneTitle")}</h1>
         <p className="lede">
           {c("playerSubmit", "anonymousPrefix")} {team.teamName}
           {c("playerSubmit", "anonymousSuffix")}
-          {count > 0
-            ? ` — ${count} ${count === 1 ? c("playerSubmit", "finishedSingular") : c("playerSubmit", "finishedPlural")}`
+          {teamCount > 0
+            ? ` — ${teamCount} ${teamCount === 1 ? c("playerSubmit", "finishedSingular") : c("playerSubmit", "finishedPlural")}`
             : "."}
         </p>
       </header>
 
-      {status === "done" && (topStrength || topGrowth) && (
+      <section className="panel">
+        <h2>Your value scores</h2>
+        <p className="muted small">
+          The bar is where you landed. The line shows your team&apos;s average, so you can
+          see where you line up — and where you differ.
+        </p>
+        <div className="cmp-legend">
+          <span className="cmp-legend-item">
+            <span className="cmp-legend-bar" /> You
+          </span>
+          <span className="cmp-legend-item">
+            <span className="cmp-legend-line" /> Team average
+          </span>
+        </div>
+        <div className="levels">
+          {ordered.map((v) => (
+            <ComparisonBar
+              key={v.value}
+              level={v}
+              teamScore={teamScores ? (teamScores.get(v.value) ?? null) : null}
+            />
+          ))}
+        </div>
+      </section>
+
+      {result.growthAreas.length > 0 && (
         <section className="panel">
-          <h2>{c("playerSubmit", "justForYouHeading")}</h2>
-          <p className="muted">{c("playerSubmit", "justForYouHint")}</p>
-          <ul className="pulse">
-            {topStrength && (
-              <li>
-                <span>{c("playerSubmit", "leanOnLabel")}</span>
-                <strong>{topStrength}</strong>
-              </li>
-            )}
-            {topGrowth && (
-              <li>
-                <span>{c("playerSubmit", "growLabel")}</span>
-                <strong>{topGrowth}</strong>
-              </li>
-            )}
-          </ul>
+          <h2>Where to focus next</h2>
+          <div className="growth-list">
+            {result.growthAreas.map((g) => (
+              <GrowthCard key={g.value} area={g} />
+            ))}
+          </div>
         </section>
       )}
-
-      <section className="panel">
-        <p className="muted">{c("playerSubmit", "waitingNote")}</p>
-      </section>
 
       <div className="footer-actions">
         <button className="ghost" onClick={onExit}>
           {c("playerSubmit", "doneButton")}
         </button>
+      </div>
+    </div>
+  );
+}
+
+function ComparisonBar({ level, teamScore }: { level: ValueLevel; teamScore: number | null }) {
+  const untested = level.tier === "untested";
+  const you = untested ? 0 : level.score;
+  const hasTeam = teamScore != null && !untested;
+  const delta = hasTeam ? you - teamScore : null;
+  const deltaClass = delta == null ? "" : delta > 0 ? "above" : delta < 0 ? "below" : "even";
+
+  return (
+    <div className={`level-row ${level.tier}`}>
+      <div className="level-head">
+        <span className="level-label">{level.label}</span>
+        <span className="level-tier">
+          {untested ? TIER_LABEL[level.tier] : `${level.score} · ${TIER_LABEL[level.tier]}`}
+        </span>
+      </div>
+      <div className="cmp-track">
+        <div className="level-fill" style={{ width: untested ? "0%" : `${you}%` }} />
+        {hasTeam && (
+          <div className="cmp-marker" style={{ left: `${Math.max(1, Math.min(99, teamScore))}%` }} />
+        )}
+      </div>
+      <div className="level-foot">
+        <span className="level-blurb">{level.blurb}</span>
+        {hasTeam && delta != null && (
+          <span className={`cmp-delta ${deltaClass}`}>
+            Team {teamScore} · {delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : "even"}
+          </span>
+        )}
       </div>
     </div>
   );
