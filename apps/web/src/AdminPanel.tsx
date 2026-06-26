@@ -7,7 +7,7 @@ import { cloneQuizConfig, createBlankQuestion, formatImpacts, parseImpacts } fro
 import { withQuizCopy } from "./quizCopy";
 import { clearAdminToken, getAdminToken } from "./adminAuth";
 
-type Tab = "content" | "questions";
+type Tab = "content" | "questions" | "scoring";
 type Filter = "all" | QuizPerspective;
 
 type ContentNavGroup = "host" | "player" | "quiz";
@@ -17,6 +17,21 @@ const CONTENT_NAV_GROUPS: { id: ContentNavGroup; label: string }[] = [
   { id: "player", label: "Player screens" },
   { id: "quiz", label: "Quiz UI" },
 ];
+
+const TAB_HEADINGS: Record<Tab, { title: string; lede: string }> = {
+  content: {
+    title: "Page content",
+    lede: "Edit the words people see on every screen, organized page by page.",
+  },
+  questions: {
+    title: "Question bank",
+    lede: "Edit the questions and scoring players see during a session.",
+  },
+  scoring: {
+    title: "Scoring sheet",
+    lede: "See exactly how each answer maps to your six values — use it as a reference or download a copy.",
+  },
+};
 
 function contentNavGroup(pageKey: string): ContentNavGroup {
   if (pageKey.startsWith("host")) return "host";
@@ -77,20 +92,18 @@ function updateOption(
 
 export default function AdminPanel({ onExit }: { onExit: () => void }) {
   const [tab, setTab] = useState<Tab>("content");
+  const heading = TAB_HEADINGS[tab];
+  const wide = tab === "content" || tab === "scoring";
 
   return (
-    <div className={`app admin-app${tab === "content" ? " admin-app-wide" : ""}`}>
+    <div className={`app admin-app${wide ? " admin-app-wide" : ""}`}>
       <header className="hero">
         <button className="link-back" onClick={onExit}>
           ← Back to host
         </button>
         <p className="eyebrow">Beyond the Game · Admin</p>
-        <h1>{tab === "content" ? "Page content" : "Question bank"}</h1>
-        <p className="lede">
-          {tab === "content"
-            ? "Edit the words people see on every screen, organized page by page."
-            : "Edit the questions and scoring players see during a session."}
-        </p>
+        <h1>{heading.title}</h1>
+        <p className="lede">{heading.lede}</p>
       </header>
 
       <div className="admin-tabs">
@@ -106,9 +119,17 @@ export default function AdminPanel({ onExit }: { onExit: () => void }) {
         >
           Question bank
         </button>
+        <button
+          className={tab === "scoring" ? "admin-tab active" : "admin-tab"}
+          onClick={() => setTab("scoring")}
+        >
+          Scoring sheet
+        </button>
       </div>
 
-      {tab === "content" ? <ContentEditor /> : <QuestionBank />}
+      {tab === "content" && <ContentEditor />}
+      {tab === "questions" && <QuestionBank />}
+      {tab === "scoring" && <ScoringSheet />}
       <StorageStatus />
     </div>
   );
@@ -597,6 +618,149 @@ function QuestionBank() {
             </article>
           );
         })}
+      </div>
+    </>
+  );
+}
+
+function ScoringSheet() {
+  const [config, setConfig] = useState<QuizConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    getQuiz()
+      .then((c) => setConfig(withQuizCopy(c)))
+      .catch(() => {
+        setConfig(withQuizCopy(cloneQuizConfig(bundledQuizConfig)));
+        setError("Couldn't reach the API — showing the built-in question set.");
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const valueLabels = useMemo(() => {
+    const map: Record<string, string> = {};
+    config?.values.forEach((v) => {
+      map[v.id] = v.label;
+    });
+    return map;
+  }, [config]);
+
+  if (loading || !config) {
+    return (
+      <section className="panel">
+        <h2>Loading scoring sheet…</h2>
+      </section>
+    );
+  }
+
+  function handleDownloadCsv() {
+    if (!config) return;
+    const header = [
+      "#",
+      "Perspective",
+      "Theme",
+      "Question",
+      "Option",
+      "Answer",
+      ...config.values.map((v) => v.label),
+    ];
+    const rows = config.questions.flatMap((q, i) =>
+      q.options.map((opt) => [
+        String(i + 1),
+        perspectiveLabel(q.perspective),
+        q.theme,
+        q.prompt,
+        opt.id.toUpperCase(),
+        opt.label,
+        ...config.values.map((v) => {
+          const n = opt.valueImpacts[v.id];
+          return !n ? "" : n > 0 ? `+${n}` : String(n);
+        }),
+      ]),
+    );
+    const csv = [header, ...rows]
+      .map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\r\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "beyond-the-game-scoring-sheet.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <>
+      <section className="panel scoring-intro">
+        <div className="scoring-intro-text">
+          <strong>How scoring works</strong>
+          <p>
+            Each answer can reinforce a value (positive points), undermine it
+            (negative points), or have no impact. A value's 0–100 score is the
+            share of points that reinforced it (reinforced ÷ total), landing it
+            in a tier: Strong (65+), Developing (45–64), or Fragile (below 45).
+            Values that barely come up across everyone's answers stay “barely
+            tested” until there's enough signal.
+          </p>
+          <div className="scoring-legend">
+            <span className="impact-chip reinforces">Reinforces (+)</span>
+            <span className="impact-chip undermines">Undermines (−)</span>
+            <span className="impact-chip neutral">No impact</span>
+          </div>
+        </div>
+        <button type="button" className="primary" onClick={handleDownloadCsv}>
+          Download CSV
+        </button>
+      </section>
+
+      {error && (
+        <section className="panel">
+          <p className="admin-status error">{error}</p>
+        </section>
+      )}
+
+      <div className="admin-questions">
+        {config.questions.map((q, i) => (
+          <article key={q.id} className="panel admin-question scoring-question">
+            <div className="admin-question-head">
+              <span className="admin-qnum">Q{i + 1}</span>
+              <span className={`perspective-pill ${q.perspective}`}>
+                {perspectiveLabel(q.perspective)}
+              </span>
+              <span className="admin-id">{q.theme}</span>
+            </div>
+            <p className="scoring-prompt">{q.prompt}</p>
+            <div className="scoring-options">
+              {q.options.map((opt) => {
+                const impacts = Object.entries(opt.valueImpacts).filter(([, n]) => n);
+                return (
+                  <div key={opt.id} className="scoring-option">
+                    <div className="scoring-option-head">
+                      <span className="scoring-opt-letter">{opt.id.toUpperCase()}</span>
+                      <span className="scoring-opt-text">{opt.label}</span>
+                    </div>
+                    <div className="scoring-impacts">
+                      {impacts.length === 0 ? (
+                        <span className="impact-chip neutral">No value impact</span>
+                      ) : (
+                        impacts.map(([value, n]) => (
+                          <span
+                            key={value}
+                            className={`impact-chip ${n > 0 ? "reinforces" : "undermines"}`}
+                          >
+                            {valueLabels[value] ?? value} {n > 0 ? `+${n}` : n}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </article>
+        ))}
       </div>
     </>
   );
