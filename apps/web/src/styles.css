@@ -957,6 +957,74 @@ h1 {
   margin-top: 0.7rem;
 }
 
+.scoring-upload-head {
+  max-width: 62ch;
+}
+
+.scoring-upload-head p {
+  margin: 0.4rem 0 0;
+  color: #c2bbb0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.scoring-upload-head code {
+  font-family: "SFMono-Regular", ui-monospace, Menlo, monospace;
+  font-size: 0.82em;
+  background: rgba(36, 108, 100, 0.18);
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+}
+
+.scoring-upload-actions {
+  margin-top: 0.85rem;
+}
+
+.scoring-pending {
+  margin-top: 1rem;
+  border-top: 1px solid rgba(232, 223, 208, 0.12);
+  padding-top: 1rem;
+}
+
+.scoring-pending-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.scoring-pending-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(232, 223, 208, 0.04);
+  border: 1px solid rgba(232, 223, 208, 0.1);
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+}
+
+.scoring-pending-prompt {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: #e8dfd0;
+}
+
+.scoring-pending-count {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: #c2bbb0;
+}
+
+.scoring-pending-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+}
+
 .scoring-question .scoring-prompt {
   margin: 0.7rem 0 0.95rem;
   font-size: 1rem;

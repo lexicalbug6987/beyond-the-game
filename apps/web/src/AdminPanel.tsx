@@ -1,5 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { QuizConfig, QuizPerspective, QuizQuestion } from "@team-culture-sim/sim-engine";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import type {
+  QuizConfig,
+  QuizPerspective,
+  QuizQuestion,
+  TeamValue,
+} from "@team-culture-sim/sim-engine";
 import { quizConfig as bundledQuizConfig, useQuizStore } from "./store/quizStore";
 import { useContentStore, notifyContentUpdated } from "./content";
 import { getQuiz, getHealth, saveContent, updateQuiz, type ContentPage, type HealthInfo } from "./api";
@@ -623,10 +628,154 @@ function QuestionBank() {
   );
 }
 
+/** Parse CSV text (handles quoted cells, escaped quotes, CRLF, and a BOM). */
+function parseCsv(input: string): string[][] {
+  let text = input;
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ",") {
+      row.push(field);
+      field = "";
+    } else if (ch === "\r") {
+      // handled on the following \n
+    } else if (ch === "\n") {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+    } else {
+      field += ch;
+    }
+  }
+  if (field.length > 0 || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows.filter((r) => r.some((cell) => cell.trim() !== ""));
+}
+
+function normalizePerspective(raw: string): QuizPerspective {
+  return (raw ?? "").trim().toLowerCase().includes("team") ? "team" : "self";
+}
+
+/**
+ * Turn parsed CSV rows into new quiz questions. Expects the same columns the
+ * scoring sheet exports: Perspective, Theme, Question, Option, Answer, and one
+ * column per value (matched by label or id). Consecutive rows that share a
+ * question become its answer options.
+ */
+function csvRowsToQuestions(
+  rows: string[][],
+  config: QuizConfig,
+): { questions: QuizQuestion[]; optionCount: number; valueColumns: number } {
+  if (rows.length < 2) {
+    throw new Error("That CSV has no data rows under the header.");
+  }
+  const lower = rows[0].map((h) => h.trim().toLowerCase());
+  const col = (name: string) => lower.indexOf(name);
+  const idxNum = col("#");
+  const idxPerspective = col("perspective");
+  const idxTheme = col("theme");
+  const idxQuestion = col("question");
+  const idxOption = col("option");
+  const idxAnswer = col("answer");
+
+  if (idxQuestion === -1 || idxAnswer === -1) {
+    throw new Error('CSV must include "Question" and "Answer" columns.');
+  }
+
+  const valueCols: { index: number; id: TeamValue }[] = [];
+  for (const v of config.values) {
+    let ci = lower.indexOf(v.label.toLowerCase());
+    if (ci === -1) ci = lower.indexOf(v.id.toLowerCase());
+    if (ci !== -1) valueCols.push({ index: ci, id: v.id });
+  }
+
+  type Group = { key: string; rows: string[][] };
+  const groups: Group[] = [];
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    const prompt = (row[idxQuestion] ?? "").trim();
+    if (!prompt) continue;
+    const num = idxNum !== -1 ? (row[idxNum] ?? "").trim() : "";
+    const key = num || prompt;
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) last.rows.push(row);
+    else groups.push({ key, rows: [row] });
+  }
+
+  const usedIds = new Set(config.questions.map((q) => q.id));
+  let counter = 1;
+  const questions: QuizQuestion[] = [];
+  let optionCount = 0;
+
+  for (const group of groups) {
+    const first = group.rows[0];
+    const prompt = (first[idxQuestion] ?? "").trim();
+    const perspective = normalizePerspective(idxPerspective !== -1 ? first[idxPerspective] : "");
+    const theme = (idxTheme !== -1 ? (first[idxTheme] ?? "").trim() : "") || "Imported";
+
+    const options = group.rows
+      .map((row, oi) => {
+        const letter =
+          (idxOption !== -1 ? (row[idxOption] ?? "").trim() : "").toLowerCase() ||
+          String.fromCharCode(97 + oi);
+        const label = (row[idxAnswer] ?? "").trim();
+        const valueImpacts: Partial<Record<TeamValue, number>> = {};
+        for (const { index, id } of valueCols) {
+          const raw = (row[index] ?? "").trim().replace("+", "");
+          if (!raw) continue;
+          const num = Number(raw);
+          if (!Number.isFinite(num) || num === 0) continue;
+          valueImpacts[id] = num;
+        }
+        return { id: letter, label, valueImpacts };
+      })
+      .filter((opt) => opt.label);
+
+    if (options.length < 2) continue;
+
+    while (usedIds.has(`q-import-${counter}`)) counter++;
+    const id = `q-import-${counter}`;
+    usedIds.add(id);
+    counter++;
+
+    optionCount += options.length;
+    questions.push({ id, theme, perspective, prompt, options });
+  }
+
+  return { questions, optionCount, valueColumns: valueCols.length };
+}
+
 function ScoringSheet() {
+  const loadConfig = useQuizStore((s) => s.loadConfig);
   const [config, setConfig] = useState<QuizConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [pending, setPending] = useState<QuizQuestion[] | null>(null);
+  const [importMsg, setImportMsg] = useState("");
+  const [importErr, setImportErr] = useState("");
+  const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     getQuiz()
@@ -691,6 +840,71 @@ function ScoringSheet() {
     URL.revokeObjectURL(url);
   }
 
+  async function handleFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !config) return;
+    setImportErr("");
+    setImportMsg("");
+    setPending(null);
+    try {
+      const text = await file.text();
+      const { questions, optionCount, valueColumns } = csvRowsToQuestions(
+        parseCsv(text),
+        config,
+      );
+      if (questions.length === 0) {
+        setImportErr(
+          "No complete questions found. Each question needs a prompt and at least two answers.",
+        );
+        return;
+      }
+      setPending(questions);
+      const noValues =
+        valueColumns === 0
+          ? " No value columns matched, so these will be imported without scoring."
+          : "";
+      setImportMsg(
+        `Found ${questions.length} question${questions.length === 1 ? "" : "s"} (${optionCount} answers). Review and add them below.${noValues}`,
+      );
+    } catch (err) {
+      setImportErr(err instanceof Error ? err.message : "Couldn't read that CSV.");
+    }
+  }
+
+  async function handleConfirmImport() {
+    if (!config || !pending) return;
+    setSaving(true);
+    setImportErr("");
+    try {
+      const next = { ...config, questions: [...config.questions, ...pending] };
+      const saved = withQuizCopy(await updateQuiz(next, getAdminToken()));
+      setConfig(saved);
+      loadConfig(saved);
+      const count = pending.length;
+      setPending(null);
+      setImportMsg(
+        `Added ${count} question${count === 1 ? "" : "s"}. They're live in the question bank.`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not save";
+      if (/unauthorized|401/i.test(message)) {
+        clearAdminToken();
+        window.location.reload();
+        return;
+      }
+      setImportErr(message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleCancelImport() {
+    setPending(null);
+    setImportMsg("");
+    setImportErr("");
+  }
+
   return (
     <>
       <section className="panel scoring-intro">
@@ -713,6 +927,75 @@ function ScoringSheet() {
         <button type="button" className="primary" onClick={handleDownloadCsv}>
           Download CSV
         </button>
+      </section>
+
+      <section className="panel scoring-upload">
+        <div className="scoring-upload-head">
+          <strong>Add questions from CSV</strong>
+          <p>
+            Upload a CSV with the same columns as the download — Perspective,
+            Theme, Question, Answer, and one column per value. Rows that share a
+            question become its answer options, and impacts read as{" "}
+            <code>+N</code> (reinforces) or <code>-N</code> (undermines). New
+            questions are appended to the question bank.
+          </p>
+        </div>
+        <div className="scoring-upload-actions">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            hidden
+            onChange={handleFile}
+          />
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={saving}
+          >
+            Choose CSV…
+          </button>
+        </div>
+        {importMsg && <p className="admin-status ok">{importMsg}</p>}
+        {importErr && <p className="admin-status error">{importErr}</p>}
+        {pending && (
+          <div className="scoring-pending">
+            <ul className="scoring-pending-list">
+              {pending.map((q) => (
+                <li key={q.id}>
+                  <span className={`perspective-pill ${q.perspective}`}>
+                    {perspectiveLabel(q.perspective)}
+                  </span>
+                  <span className="scoring-pending-prompt">{q.prompt}</span>
+                  <span className="scoring-pending-count">
+                    {q.options.length} answers
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="scoring-pending-actions">
+              <button
+                type="button"
+                className="ghost"
+                onClick={handleCancelImport}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="primary"
+                onClick={handleConfirmImport}
+                disabled={saving}
+              >
+                {saving
+                  ? "Adding…"
+                  : `Add ${pending.length} question${pending.length === 1 ? "" : "s"}`}
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {error && (
